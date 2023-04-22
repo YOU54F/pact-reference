@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ ubuntu-latest, windows-latest, macos-latest ]
+        operating-system: [ ubuntu-latest ]
         rust: [ stable ]
         target: 
           - x86_64-unknown-linux-gnu
@@ -30,8 +30,24 @@ jobs:
         with:
           toolchain: stable
           targets: ${{ matrix.target }}
-      - name: Build pact_ffi
+      - name: get musl-tools
+        if: contains(${{ matrix.target }}, 'musl')
+        run: sudo apt install musl-tools
+        working-directory: rust/pact_ffi
+        shell: bash
+      - name: install cross for ${{ matrix.target }}
+        if: contains(${{ matrix.target }}, 'aarch64')
+        run: cargo install cross
+        working-directory: rust/pact_ffi
+        shell: bash
+      - name: Build pact_ffi with cargo for ${{ matrix.target }}
+        if: contains(${{ matrix.target }}, 'x86_64')
         run: cargo build --target ${{ matrix.target }} --release
+        working-directory: rust/pact_ffi
+        shell: bash
+      - name: Build pact_ffi with cross for ${{ matrix.target }}
+        if: contains(${{ matrix.target }}, 'x86_64')
+        run: cross build --target ${{ matrix.target }} --release
         working-directory: rust/pact_ffi
         shell: bash
 
@@ -54,7 +70,7 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.target }}
       - name: Build pact_ffi
-        run: cross build --target ${{ matrix.target }} --release
+        run: cargo build --target ${{ matrix.target }} --release
         working-directory: rust/pact_ffi
         shell: bash
 
@@ -78,6 +94,6 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.target }}
       - name: Build pact_ffi
-        run: cross build --target ${{ matrix.target }} --release
+        run: cargo build --target ${{ matrix.target }} --release
         working-directory: rust/pact_ffi
         shell: bash
