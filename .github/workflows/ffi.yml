@@ -11,17 +11,140 @@ jobs:
         operating-system: [ ubuntu-latest ]
         rust: [ stable ]
         target: 
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
-          - i686-unknown-linux-gnu
-          - armv7-unknown-linux-gnueabihf
-          - x86_64-unknown-linux-musl
-          - aarch64-unknown-linux-musl
-          - armv7-unknown-linux-musleabihf
-          - aarch64-unknown-freebsd
-          - x86_64-unknown-freebsd
-          - i686-unknown-freebsd	
-          - armv7-unknown-freebsd
+            - x86_64-unknown-linux-gnu
+            - x86_64-unknown-linux-musl
+            - aarch64-unknown-freebsd
+            - armv7-unknown-freebsd
+            - aarch64-unknown-linux-gnu
+            - s390x-unknown-linux-gnu
+            - arm-unknown-linux-gnueabi
+            - armv5te-unknown-linux-gnueabi
+            - armv7-unknown-linux-gnueabi
+            - armv7-unknown-linux-gnueabihf
+            - i586-unknown-linux-gnu (x86_64, arm64, pp64le)
+            - i686-unknown-linux-gnu
+            - powerpc64le-unknown-linux-gnu
+            - riscv64gc-unknown-linux-gnu
+            - aarch64-unknown-linux-musl
+            - arm-unknown-linux-musleabi
+            - arm-unknown-linux-musleabihf
+            - armv5te-unknown-linux-musleabi
+            - armv7-unknown-linux-musleabi
+            - armv7-unknown-linux-musleabihf
+            - i586-unknown-linux-musl
+            - i686-unknown-freebsd
+            - mips-unknown-linux-musl
+            - mips64-unknown-linux-muslabi64
+            - mips64el-unknown-linux-muslabi64
+            - mipsel-unknown-linux-musl
+            - sparcv9-sun-solaris
+            - thumbv6m-none-eabi
+            - thumbv7em-none-eabi
+            - thumbv7em-none-eabihf
+            - thumbv7m-none-eabi
+            - thumbv7neon-unknown-linux-gnueabihf
+            - x86_64-unknown-freebsd
+            # Expected to fail
+            - arm-unknown-linux-gnueabihf
+            - sparc64-unknown-linux-gnu
+            - mips-unknown-linux-gnu
+            - mips64-unknown-linux-gnuabi64
+            - mips64el-unknown-linux-gnuabi64
+            - mipsel-unknown-linux-gnu
+            - powerpc-unknown-linux-gnu
+            - powerpc64-unknown-linux-gnu
+            - i686-pc-windows-gnu
+            - x86_64-pc-windows-gnu
+            - wasm32-unknown-emscripten 
+            - x86_64-sun-solaris
+            # untested
+            - x86_64-unknown-dragonfly
+            - x86_64-unknown-illumos
+            - x86_64-unknown-linux-gnu:centos
+            - x86_64-unknown-netbsd
+            - powerpc64le-unknown-linux-gnu	
+            - riscv64gc-unknown-linux-gnu	
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustc --version || true
+        shell: bash
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.target != 'aarch64-unknown-freebsd' || matrix.target != 'armv7-unknown-freebsd' 
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: get musl-tools
+        # if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt install musl-tools
+        working-directory: rust/pact_ffi
+        shell: bash
+      - name: Build pact_ffi with cargo for ${{ matrix.target }}
+        run: cargo build --target ${{ matrix.target }} --release
+        working-directory: rust/pact_ffi
+        shell: bash
+
+
+  build_cross:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ ubuntu-latest ]
+        rust: [ stable ]
+        target: 
+            - aarch64-unknown-freebsd
+            - armv7-unknown-freebsd
+            - aarch64-unknown-linux-gnu
+            - s390x-unknown-linux-gnu
+            - arm-unknown-linux-gnueabi
+            - armv5te-unknown-linux-gnueabi
+            - armv7-unknown-linux-gnueabi
+            - armv7-unknown-linux-gnueabihf
+            - i586-unknown-linux-gnu (x86_64, arm64, pp64le)
+            - i686-unknown-linux-gnu
+            - powerpc64le-unknown-linux-gnu
+            - riscv64gc-unknown-linux-gnu
+            - x86_64-unknown-linux-gnu
+            - x86_64-unknown-linux-musl
+            - aarch64-unknown-linux-musl
+            - arm-unknown-linux-musleabi
+            - arm-unknown-linux-musleabihf
+            - armv5te-unknown-linux-musleabi
+            - armv7-unknown-linux-musleabi
+            - armv7-unknown-linux-musleabihf
+            - i586-unknown-linux-musl
+            - i686-unknown-freebsd
+            - mips-unknown-linux-musl
+            - mips64-unknown-linux-muslabi64
+            - mips64el-unknown-linux-muslabi64
+            - mipsel-unknown-linux-musl
+            - sparcv9-sun-solaris
+            - thumbv6m-none-eabi
+            - thumbv7em-none-eabi
+            - thumbv7em-none-eabihf
+            - thumbv7m-none-eabi
+            - thumbv7neon-unknown-linux-gnueabihf
+            - x86_64-unknown-freebsd
+            # Expected to fail
+            - arm-unknown-linux-gnueabihf
+            - sparc64-unknown-linux-gnu
+            - mips-unknown-linux-gnu
+            - mips64-unknown-linux-gnuabi64
+            - mips64el-unknown-linux-gnuabi64
+            - mipsel-unknown-linux-gnu
+            - powerpc-unknown-linux-gnu
+            - powerpc64-unknown-linux-gnu
+            - i686-pc-windows-gnu
+            - x86_64-pc-windows-gnu
+            - wasm32-unknown-emscripten 
+            - x86_64-sun-solaris
+            # untested
+            - x86_64-unknown-dragonfly
+            - x86_64-unknown-illumos
+            - x86_64-unknown-linux-gnu:centos
+            - x86_64-unknown-netbsd
+            - powerpc64le-unknown-linux-gnu	
+            - riscv64gc-unknown-linux-gnu	
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
@@ -29,24 +152,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: ${{ matrix.target }}
-      - name: get musl-tools
-        if: contains(${{ matrix.target }}, 'musl')
-        run: sudo apt install musl-tools
-        working-directory: rust/pact_ffi
-        shell: bash
       - name: install cross for ${{ matrix.target }}
-        if: contains(${{ matrix.target }}, 'aarch64')
         run: cargo install cross
         working-directory: rust/pact_ffi
         shell: bash
-      - name: Build pact_ffi with cargo for ${{ matrix.target }}
-        if: contains(${{ matrix.target }}, 'x86_64')
-        run: cargo build --target ${{ matrix.target }} --release
-        working-directory: rust/pact_ffi
-        shell: bash
       - name: Build pact_ffi with cross for ${{ matrix.target }}
-        if: contains(${{ matrix.target }}, 'x86_64')
         run: cross build --target ${{ matrix.target }} --release
         working-directory: rust/pact_ffi
         shell: bash
@@ -93,6 +203,13 @@ jobs:
         with:
           toolchain: stable
           targets: ${{ matrix.target }}
+      - name: Build pact_ffi
+        if: matrix.target == 'aarch64-pc-windows-msvc'
+        run: |
+            echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >> ../cargo.toml
+            cargo update 
+        working-directory: rust
+        shell: bash
       - name: Build pact_ffi
         run: cargo build --target ${{ matrix.target }} --release
         working-directory: rust/pact_ffi
