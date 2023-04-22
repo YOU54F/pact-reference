@@ -1,0 +1,83 @@
+name: Pact-Rust FFI Build
+
+on: [push, pull_request]
+
+jobs:
+  build_linux:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ ubuntu-latest, windows-latest, macos-latest ]
+        rust: [ stable ]
+        target: 
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-musleabihf
+          - aarch64-unknown-freebsd
+          - x86_64-unknown-freebsd
+          - i686-unknown-freebsd	
+          - armv7-unknown-freebsd
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustc --version || true
+        shell: bash
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: Build pact_ffi
+        run: cargo build --target ${{ matrix.target }} --release
+        working-directory: rust/pact_ffi
+        shell: bash
+
+  build_mac:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ macos-latest ]
+        rust: [ stable ]
+        target: 
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustc --version || true
+        shell: bash
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: Build pact_ffi
+        run: cross build --target ${{ matrix.target }} --release
+        working-directory: rust/pact_ffi
+        shell: bash
+
+  build_windows:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ windows-latest ]
+        rust: [ stable ]
+        target: 
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - i686-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustc --version || true
+        shell: bash
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: Build pact_ffi
+        run: cross build --target ${{ matrix.target }} --release
+        working-directory: rust/pact_ffi
+        shell: bash
