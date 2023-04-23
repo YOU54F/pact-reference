@@ -350,7 +350,7 @@ jobs:
          ##### - armv7-linux-androideabi # ✅
          ##### - thumbv7neon-linux-androideabi # ✅
          ##### # - x86_64-pc-windows-gnu # ✅ # building on windows
-         ##### - i686-pc-windows-gnu # ✅ # NOTE need to add exe onto upload path
+          - i686-pc-windows-gnu # ✅ # NOTE need to add exe onto upload path
          ##### - x86_64-unknown-netbsd # ✅
           - x86_64-unknown-freebsd # ✅ (fails on verifier and mock_server_cli - error: linking with `x86_64-unknown-freebsd12-gcc - libelf.so.2 not found)
         #   - asmjs-unknown-emscripten
