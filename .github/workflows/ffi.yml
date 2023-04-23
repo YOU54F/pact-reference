@@ -15,11 +15,11 @@ jobs:
       - name: Generate Matrix for testing
         id: generate_matrix
         run: |
-          if [[ ${{ github.ref }} == *"libpact_ffi" ]]; then
+          if [[ ${{ github.ref }} == *"libpact_ffi"* ]]; then
             crate_to_test=[\"pact_ffi\"]
-          elif [[ ${{ github.ref }} == *"pact_verifier_cli" ]]; then
+          elif [[ ${{ github.ref }} == *"pact_verifier_cli"* ]]; then
             crate_to_test=[\"pact_verifier_cli\"]
-          elif [[ ${{ github.ref }} == *"pact_mock_server_cli" ]]; then
+          elif [[ ${{ github.ref }} == *"pact_mock_server_cli"* ]]; then
             crate_to_test=[\"pact_mock_server_cli\"]
           else
             crate_to_test=[\"pact_verifier_cli\",\"pact_mock_server_cli\",\"pact_ffi\"]
@@ -386,11 +386,6 @@ jobs:
           # - thumbv8m.main-none-eabihf
         crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
     steps:
-      - name: Early exit building ${{ matrix.crate }} on ${{ matrix.target }}
-        if: (matrix.crate == 'pact_verifier_cli' ||  matrix.crate == 'pact_mock_server_cli') &&  matrix.target == 'x86_64-unknown-freebsd'
-        run: |
-          gh run cancel ${{ github.run_id }}
-          gh run watch ${{ github.run_id }}
       - uses: actions/checkout@v3
       - run: rustc --version || true
         shell: bash
