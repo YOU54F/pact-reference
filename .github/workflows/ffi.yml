@@ -415,10 +415,6 @@ jobs:
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
           openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
-          gzip -c target/${{ matrix.target }}/release/pact_ffi.dll.lib > target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz
-          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz.sha256
-          gzip -c target/${{ matrix.target }}/release/pact_ffi.lib > target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz
-          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz > target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz.sha256
         working-directory: rust
       - name: Process the a file
         if: matrix.crate == 'pact_ffi' && ( matrix.target != 'i686-pc-windows-gnu' || matrix.target != 'x86_64-pc-windows-gnu')
@@ -593,7 +589,7 @@ jobs:
         working-directory: rust/target/${{ matrix.target }}/release
         shell: bash
       - name: Process the artifacts
-        if: matrix.crate == 'pact_ffi'
+        if: matrix.crate == 'pact_ffi' && matrix.target != 'x86_64-pc-windows-gnu'
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
           openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
@@ -601,6 +597,12 @@ jobs:
           openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz.sha256
           gzip -c target/${{ matrix.target }}/release/pact_ffi.lib > target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz
           openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz > target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz.sha256
+        working-directory: rust
+      - name: Process the artifacts
+        if: matrix.crate == 'pact_ffi' && matrix.target == 'x86_64-pc-windows-gnu'
+        run: |
+          gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
+          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
         working-directory: rust
       - name: Process the artifacts
         if: matrix.crate == 'pact_verifier_cli'
