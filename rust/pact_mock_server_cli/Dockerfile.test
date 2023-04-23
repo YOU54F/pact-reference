@@ -1,0 +1,59 @@
+ARG ALPINE_VERSION 3
+FROM alpine:${ALPINE_VERSION} AS base
+## Available node alpine images
+# linux/amd64
+# linux/arm/v6
+# linux/arm/v7
+# linux/arm64/v8
+# linux/ppc64le
+# linux/s390x
+
+ARG PACT_TOOL=pact_mock_server_cli
+ARG PACT_TOOL_VERSION=1.0.3
+ENV DOWNLOAD_LOCATION=https://github.com/YOU54F/pact-reference/releases/download/${PACT_TOOL}-v${PACT_TOOL_VERSION}/
+# https://github.com/YOU54F/pact-reference/releases/download/pact_verifier_cli-v1.0.3/pact_verifier_cli-aarch64-unknown-linux-musl.gz
+FROM base AS base-amd64
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-x86_64-unknown-linux-musl.gz
+FROM base AS base-arm64
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-aarch64-unknown-linux-musl.gz
+FROM base AS base-armv7
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-armv7-unknown-linux-musleabi.gz
+# ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL_VERSION}-armv7-unknown-linux-musleabihf.gz
+FROM base AS base-arm
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-arm-unknown-linux-musleabi.gz
+# ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL_VERSION}-arm-unknown-linux-musleabihf.gz
+FROM base AS base-armv6
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-arm-unknown-linux-musleabi.gz
+# ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL_VERSION}-arm-unknown-linux-musleabihf.gz
+FROM base AS base-armv5te
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-armv5te-unknown-linux-musleabi.gz
+FROM base AS base-i586
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-i586-unknown-linux-musl.gz
+FROM base AS base-i686
+ARG PACT_TOOL_VERSION
+ENV PACT_ARCHIVE_FILENAME=${PACT_TOOL}-i686-unknown-linux-musl.gz
+ARG TARGETARCH
+FROM base-$TARGETARCH AS pb-dev
+
+RUN env
+
+ARG TARGETARCH
+ARG PACT_TOOL_VERSION
+ARG PACT_TOOL
+
+# ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.2/supercronic-linux-${TARGETARCH} \
+#     SUPERCRONIC=supercronic-linux-${TARGETARCH}
+
+RUN wget -O - "$DOWNLOAD_LOCATION$PACT_ARCHIVE_FILENAME" | gunzip -c > $PACT_TOOL \
+ && chmod +x "$PACT_TOOL" \
+ && mv "$PACT_TOOL" "/usr/local/bin/${PACT_TOOL}"
+
+RUN "$PACT_TOOL" --version
+ENTRYPOINT [ "pact_mock_server_cli" ]
