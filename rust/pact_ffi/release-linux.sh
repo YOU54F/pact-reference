@@ -65,7 +65,6 @@ openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-linux-i686.so.gz > ../ta
 gzip -c ../target/i686-unknown-linux-gnu/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-linux-i686.a.gz
 openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-linux-i686.a.gz > ../target/artifacts/libpact_ffi-linux-i686.a.gz.sha256
 
-
 echo -- Build the armv7 release artifacts --
 rustup target add armv7-unknown-linux-gnueabihf
 cross build --target armv7-unknown-linux-gnueabihf --release
@@ -81,27 +80,3 @@ gzip -c ../target/x86_64-unknown-freebsd/release/libpact_ffi.so > ../target/arti
 openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-x86_64.so.gz > ../target/artifacts/libpact_ffi-freebsd-x86_64.so.gz.sha256
 gzip -c ../target/x86_64-unknown-freebsd/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-freebsd-x86_64.a.gz
 openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-x86_64.a.gz > ../target/artifacts/libpact_ffi-freebsd-x86_64.a.gz.sha256
-
-echo -- Build the freebsd i686 release artifacts --
-rustup target add i686-unknown-freebsd
-cargo build --target i686-unknown-freebsd --release
-gzip -c ../target/i686-unknown-freebsd/release/libpact_ffi.so > ../target/artifacts/libpact_ffi-freebsd-i686.so.gz
-openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-i686.so.gz > ../target/artifacts/libpact_ffi-freebsd-i686.so.gz.sha256
-gzip -c ../target/i686-unknown-freebsd/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-freebsd-i686.a.gz
-openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-i686.a.gz > ../target/artifacts/libpact_ffi-freebsd-i686.a.gz.sha256
-
-echo -- Build the freebsd aarch64 release artifacts --
-rustup target add aarch64-unknown-freebsd
-cross build --target aarch64-unknown-freebsd --release
-gzip -c ../target/aarch64-unknown-freebsd/release/libpact_ffi.so > ../target/artifacts/libpact_ffi-freebsd-aarch64.so.gz
-openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-aarch64.so.gz > ../target/artifacts/libpact_ffi-freebsd-aarch64.so.gz.sha256
-gzip -c ../target/aarch64-unknown-freebsd/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-freebsd-aarch64.a.gz
-openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-aarch64.a.gz > ../target/artifacts/libpact_ffi-freebsd-aarch64.a.gz.sha256
-
-echo -- Build the freebsd armv7 release artifacts --
-rustup target add armv7-unknown-freebsd
-cross build --target armv7-unknown-freebsd --release
-gzip -c ../target/armv7-unknown-freebsd/release/libpact_ffi.so > ../target/artifacts/libpact_ffi-freebsd-armv7.so.gz
-openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-aarch64.so.gz > ../target/artifacts/libpact_ffi-freebsd-aararmv7ch64.so.gz.sha256
-gzip -c ../target/armv7-unknown-freebsd/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-freebsd-armv7.a.gz
-openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-freebsd-armv7.a.gz > ../target/artifacts/libpact_ffi-freebsd-armv7.a.gz.sha256
