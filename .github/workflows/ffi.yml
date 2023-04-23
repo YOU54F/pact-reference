@@ -387,26 +387,26 @@ jobs:
         crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
     steps:
       - uses: actions/checkout@v3
-        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
       - run: rustc --version || true
-        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        # if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         shell: bash
       - uses: dtolnay/rust-toolchain@stable
-        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        # if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         with:
           toolchain: stable
       - name: install cross for ${{ matrix.target }}
-        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        # if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         run: cargo install cross
         working-directory: rust/${{ matrix.crate }}
         shell: bash
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
-        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        # if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         run: cross build --target ${{ matrix.target }} --release
         working-directory: rust/${{ matrix.crate }}
         shell: bash
       - name: Show ${{ matrix.crate }} release
-        if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        # if: (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         run: ls && mkdir -p ../../artifacts/
         working-directory: rust/target/${{ matrix.target }}/release
         shell: bash
@@ -429,13 +429,13 @@ jobs:
           openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz.sha256
         working-directory: rust
       - name: Process the artifacts
-        if: (matrix.crate == 'pact_verifier_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        if: (matrix.crate == 'pact_verifier_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_verifier_cli > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz
           openssl dgst -sha256 -r target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz.sha256
         working-directory: rust
       - name: Process the artifacts
-        if: (matrix.crate == 'pact_mock_server_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        if: (matrix.crate == 'pact_mock_server_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_mock_server_cli > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz
           openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz.sha256
@@ -453,13 +453,13 @@ jobs:
           openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz.sha256
         working-directory: rust
       - name: Upload the artifacts
-        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         uses: actions/upload-artifact@v3.1.2
         with:
           name: release-artifacts
           path: rust/target/artifacts
       - name: Upload Release Assets
-        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_verifier_cli')))
+        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')) && (!(matrix.target == 'x86_64-unknown-freebsd' && (matrix.crate == 'pact_verifier_cli' || matrix.crate == 'pact_mock_server_cli')))
         uses: svenstaro/upload-release-action@2.5.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
