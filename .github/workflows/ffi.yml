@@ -29,552 +29,90 @@ jobs:
       - run: echo "${{ toJson(steps.generate_matrix.outputs.crate) }}"
         name: Testing ${{ toJson(steps.generate_matrix.outputs.crate) }}
   
-  build_linux:
+  build_cross:
     runs-on: ${{ matrix.operating-system }}
     needs: setup_matrix
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        rust: [stable]
-        target: # https://doc.rust-lang.org/nightly/rustc/platform-support.html
-          # Tier 1
-          # - mips-unknown-linux-gnu
-          # - mips64-unknown-linux-gnuabi64
-          # - mips64el-unknown-linux-gnuabi64
-          # - mipsel-unknown-linux-gnu
-          # - powerpc-unknown-linux-gnu
-          # - powerpc64-unknown-linux-gnu
-          # - powerpc64le-unknown-linux-gnu
-          - riscv64gc-unknown-linux-gnu
-          - s390x-unknown-linux-gnu
-          # - x86_64-unknown-freebsd  # ⏭️ Skipping as building with cross
-          # - x86_64-unknown-illumos
-          # - x86_64-unknown-netbsd  # ⏭️ Skipping as building with cross
-          # Tier 2
-          # - aarch64-apple-ios   # ⏭️ Skipping as building on macos
-          # - aarch64-apple-ios-sim   # ⏭️ Skipping as building on macos
-          # - aarch64-fuchsia
-          # - aarch64-unknown-fuchsia
-          # - aarch64-linux-android
-          # - aarch64-unknown-none-softfloat
-          # - aarch64-unknown-none
-          # - aarch64-unknown-uefi
-          # - arm-linux-androideabi  # ⏭️ Skipping as building with cross
-          # - arm-unknown-linux-musleabi # ⏭️ Skipping as building with cross
-          # - arm-unknown-linux-musleabihf # ⏭️ Skipping as building with cross
-          # - armebv7r-none-eabi
-          # - armebv7r-none-eabihf
-          # - armv5te-unknown-linux-gnueabi # ⏭️ Skipping as building with cross
-          # - armv5te-unknown-linux-musleabi # ⏭️ Skipping as building with cross
-          # - armv7-linux-androideabi  # ⏭️ Skipping as building with cross
-          # - armv7-unknown-linux-gnueabi  # ⏭️ Skipping as building with cross
-          # - armv7-unknown-linux-musleabi  # ⏭️ Skipping as building with cross
-          # - armv7-unknown-linux-musleabihf  # ⏭️ Skipping as building with cross
-          # - armv7a-none-eabi
-          # - armv7r-none-eabi
-          # - armv7r-none-eabihf
-          # - asmjs-unknown-emscripten
-          # - i586-pc-windows-msvc ⏭️ Skipping as building with windows
-          # - i586-unknown-linux-gnu   # ⏭️ Skipping as building with cross
-          # - i586-unknown-linux-musl  # ⏭️ Skipping as building with cross
-          # - i686-linux-android
-          - i686-unknown-freebsd
-          # - i686-unknown-linux-musl  # ⏭️ Skipping as building with cross
-          # - i686-unknown-uefi
-          # - mips-unknown-linux-musl
-          # - mips64-unknown-linux-muslabi64
-          # - mips64el-unknown-linux-muslabi64
-          # - mipsel-unknown-linux-musl
-          # - nvptx64-nvidia-cuda
-          # - riscv32i-unknown-none-elf
-          # - riscv32imac-unknown-none-elf
-          # - riscv32imc-unknown-none-elf
-          - riscv64gc-unknown-none-elf
-          - riscv64imac-unknown-none-elf
-          # - sparc64-unknown-linux-gnu
-          # - sparcv9-sun-solaris
-          # - thumbv6m-none-eabi
-          # - thumbv7em-none-eabi
-          # - thumbv7em-none-eabihf
-          # - thumbv7m-none-eabi
-          # - thumbv7neon-linux-androideabi  # ⏭️ Skipping as building with cross
-          # - thumbv7neon-unknown-linux-gnueabihf   # ⏭️ Skipping as building with cross
-          # - thumbv8m.base-none-eabi
-          # - thumbv8m.main-none-eabi
-          # - thumbv8m.main-none-eabihf
-          # - wasm32-unknown-emscripten
-          # - wasm32-unknown-unknown
-          # - wasm32-wasi
-          # - x86_64-apple-ios   # ⏭️ Skipping as building on macos
-          # - x86_64-fortanix-unknown-sgx
-          # - x86_64-fuchsia
-          # - x86_64-unknown-fuchsia
-          # - x86_64-linux-android
-          # - x86_64-pc-solaris
-          # - x86_64-unknown-linux-gnux32
-          # - x86_64-unknown-none
-          # - x86_64-unknown-redox
-          # - x86_64-unknown-uefi
-          # # Tier 3
-          # - aarch64-apple-ios-macabi   # ⏭️ Skipping as building on macos
-          # - aarch64-apple-tvos   # ⏭️ Skipping as building on macos
-          # - aarch64-apple-watchos-sim   # ⏭️ Skipping as building on macos
-          # - aarch64-kmc-solid_asp3
-          # - aarch64-nintendo-switch-freestanding
-          # - aarch64-pc-windows-gnullvm  ⏭️ Skipping as building with windows
-          # - aarch64-unknown-linux-ohos
-          # - aarch64-unknown-nto-qnx710
-          - aarch64-unknown-freebsd
-          # - aarch64-unknown-hermit
-          # - aarch64-unknown-linux-gnu_ilp32
-          # - aarch64-unknown-netbsd
-          # - aarch64-unknown-openbsd
-          # - aarch64-unknown-redox
-          # - aarch64-uwp-windows-msvc  ⏭️ Skipping as building with windows
-          # - aarch64-wrs-vxworks
-          # - aarch64_be-unknown-linux-gnu_ilp32
-          # - aarch64_be-unknown-linux-gnu
-          # - arm64_32-apple-watchos   # ⏭️ Skipping as building on macos
-          # - armeb-unknown-linux-gnueabi
-          # - armv4t-none-eabi
-          # - armv4t-unknown-linux-gnueabi
-          # - armv5te-none-eabi
-          # - armv5te-unknown-linux-uclibceabi
-          # - armv6-unknown-freebsd
-          # - armv6-unknown-netbsd-eabihf
-          # - armv6k-nintendo-3ds
-          # - armv7-apple-ios   # ⏭️ Skipping as building on macos
-          # - armv7-sony-vita-newlibeabihf # ⏭️ Skipping as no toolchain on stable
-          # - armv7-unknown-linux-ohos # ⏭️ Skipping as no toolchain on stable
-          # - armv7-unknown-linux-uclibceabi # ⏭️ Skipping as no toolchain on stable
-          # - armv7-unknown-linux-uclibceabihf # ⏭️ Skipping as no toolchain on stable
-          - armv7-unknown-freebsd # ⏭️ Skipping as no toolchain on stable
-          # - armv7-unknown-netbsd-eabihf # ⏭️ Skipping as no toolchain on stable
-          # - armv7-wrs-vxworks-eabihf # ⏭️ Skipping as no toolchain on stable
-          # - armv7a-kmc-solid_asp3-eabi # ⏭️ Skipping as no toolchain on stable
-          # - armv7a-kmc-solid_asp3-eabihf # ⏭️ Skipping as no toolchain on stable
-          # - armv7a-none-eabihf # ⏭️ Skipping as no toolchain on stable
-          # - armv7k-apple-watchos   # ⏭️ Skipping as building on macos
-          # - armv7s-apple-ios   # ⏭️ Skipping as building on macos
-          # - avr-unknown-gnu-atmega328 # ⏭️ Skipping as no toolchain on stable
-          # - bpfeb-unknown-none # ⏭️ Skipping as no toolchain on stable
-          # - bpfel-unknown-none # ⏭️ Skipping as no toolchain on stable
-          # - hexagon-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - i386-apple-ios   # ⏭️ Skipping as building on macos
-          # - i586-pc-nto-qnx700 # ⏭️ Skipping as no toolchain on stable
-          # - i686-apple-darwin   # ⏭️ Skipping as building on macos
-          # - i686-pc-windows-msvc   # ⏭️ Skipping as building on windows
-          # - i686-unknown-haiku # ⏭️ Skipping as no toolchain on stable
-          # - i686-unknown-netbsd # ⏭️ Skipping as no toolchain on stable
-          # - i686-unknown-openbsd # ⏭️ Skipping as no toolchain on stable
-          # - i686-uwp-windows-gnu  ⏭️ Skipping as building with windows
-          # - i686-uwp-windows-msvc  ⏭️ Skipping as building with windows
-          # - i686-wrs-vxworks # ⏭️ Skipping as no toolchain on stable
-          # - loongarch64-unknown-linux-gnu # ⏭️ Skipping as no toolchain on stable
-          # - m68k-unknown-linux-gnu # ⏭️ Skipping as no toolchain on stable
-          # - mips-unknown-linux-uclibc # ⏭️ Skipping as no toolchain on stable
-          # - mips64-openwrt-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - mipsel-sony-psp # ⏭️ Skipping as no toolchain on stable
-          # - mipsel-sony-psx # ⏭️ Skipping as no toolchain on stable
-          # - mipsel-unknown-linux-uclibc # ⏭️ Skipping as no toolchain on stable
-          # - mipsel-unknown-none # ⏭️ Skipping as no toolchain on stable
-          # - mipsisa32r6-unknown-linux-gnu # ⏭️ Skipping as no toolchain on stable
-          # - mipsisa32r6el-unknown-linux-gnu # ⏭️ Skipping as no toolchain on stable
-          # - mipsisa64r6-unknown-linux-gnuabi64 # ⏭️ Skipping as no toolchain on stable
-          # - mipsisa64r6el-unknown-linux-gnuabi64 # ⏭️ Skipping as no toolchain on stable
-          # - msp430-none-elf # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-unknown-linux-gnuspe # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-unknown-netbsd # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-unknown-openbsd # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-wrs-vxworks-spe # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-wrs-vxworks # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64-unknown-freebsd # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64le-unknown-freebsd # ⏭️ Skipping as no toolchain on stable
-          # - powerpc-unknown-freebsd # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64-wrs-vxworks # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64le-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64-unknown-openbsd # ⏭️ Skipping as no toolchain on stable
-          # - powerpc64-ibm-aix # ⏭️ Skipping as no toolchain on stable
-          # - riscv32gc-unknown-linux-gnu # ⏭️ Skipping as no toolchain on stable
-          # - riscv32gc-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - riscv32im-unknown-none-elf # ⏭️ Skipping as no toolchain on stable
-          # - riscv32imac-unknown-xous-elf # ⏭️ Skipping as no toolchain on stable
-          # - riscv32imc-esp-espidf # ⏭️ Skipping as no toolchain on stable
-          - riscv64gc-unknown-freebsd # ⏭️ Skipping as no toolchain on stable
-          # - riscv64gc-unknown-fuchsia # ⏭️ Skipping as no toolchain on stable
-          - riscv64gc-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - riscv64gc-unknown-openbsd # ⏭️ Skipping as no toolchain on stable
-          - s390x-unknown-linux-musl # ⏭️ Skipping as no toolchain on stable
-          # - sparc-unknown-linux-gnu # ⏭️ Skipping as no toolchain on stable
-          # - sparc64-unknown-netbsd # ⏭️ Skipping as no toolchain on stable
-          # - sparc64-unknown-openbsd # ⏭️ Skipping as no toolchain on stable
-          # - thumbv4t-none-eabi #  ⏭️ Skipping as no toolchain on stable
-          # - thumbv5te-none-eabi #  ⏭️ Skipping as no toolchain on stable
-          # - thumbv7a-pc-windows-msvc  # ⏭️ Skipping as building with windows
-          # - thumbv7a-uwp-windows-msvc  # ⏭️ Skipping as building with windows
-          # - thumbv7neon-unknown-linux-musleabihf  # ⏭️ Skipping as no toolchain on stable
-          # - wasm64-unknown-unknown # ⏭️ Skipping as no toolchain on stable
-          # - x86_64-apple-ios-macabi   # ⏭️ Skipping as building on macos
-          # - x86_64-apple-tvos   # ⏭️ Skipping as building on macos
-          # - x86_64-apple-watchos-sim   # ⏭️ Skipping as building on macos
-          # - x86_64-pc-nto-qnx710  ⏭️ Skipping as no toolchain on stable
-          # - x86_64-pc-windows-gnullvm  ⏭️ Skipping as building with windows
-          # - x86_64-pc-windows-msvc  # ⏭️ Skipping as building on windows
-          # - x86_64-sun-solaris  ⏭️ failing
-          # - x86_64-unknown-dragonfly
-          # - x86_64-unknown-haiku  ⏭️ Skipping as no toolchain on stable
-          # - x86_64-unknown-hermit  ⏭️ Skipping as no toolchain on stable
-          # - x86_64-unknown-l4re-uclibc  ⏭️ Skipping as no toolchain on stable
-          # - x86_64-unknown-openbsd  ⏭️ Skipping as no toolchain on stable
-          # - x86_64-uwp-windows-gnu  ⏭️ Skipping as building with windows
-          # - x86_64-uwp-windows-msvc  ⏭️ Skipping as building with windows
-          # - x86_64-wrs-vxworks   ⏭️ Skipping as no toolchain on stable
+        target: # https://github.com/cross-rs/cross/blob/main/targets.toml
+          - x86_64-unknown-freebsd # ✅ (fails on verifier and mock_server_cli - error: linking with `x86_64-unknown-freebsd12-gcc - libelf.so.2 not found)
+          - aarch64-linux-android
+          - i686-linux-android
+          - x86_64-linux-android
         crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
         shell: bash
-      - run: docker run --privileged --rm tonistiigi/binfmt --install all
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
+          toolchain: stable
           targets: ${{ matrix.target }}
-      - name: get musl-tools
-        run: sudo apt install musl-tools
+      # - run: docker run --privileged --rm tonistiigi/binfmt --install all
+      - name: install cross for ${{ matrix.target }}
+        run: cargo install cross --git https://github.com/cross-rs/cross
         working-directory: rust/${{ matrix.crate }}
         shell: bash
-      - name: Ring 0.16.20 patch for ARM64
-        if: matrix.target == 'aarch64-pc-windows-msvc'
-        run: |
-          echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >> cargo.toml
-          cargo update
-        working-directory: rust
-        shell: bash
-      - name: Build ${{ matrix.crate }} with cargo for ${{ matrix.target }}
-        run: cargo build --target ${{ matrix.target }} --release
+      - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
+        run: cross build --target ${{ matrix.target }} --release
         working-directory: rust/${{ matrix.crate }}
         shell: bash
       - name: Show ${{ matrix.crate }} release
         run: ls && mkdir -p ../../artifacts/
         working-directory: rust/target/${{ matrix.target }}/release
         shell: bash
-      - name: Process the a file
-        if: matrix.crate == 'pact_ffi'
-        run: |
-          gzip -c target/${{ matrix.target }}/release/libpact_ffi.a > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz
-          openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz.sha256
-        working-directory: rust
       - name: Process the so file
-        if: matrix.crate == 'pact_ffi' && matrix.target != 'x86_64-unknown-linux-musl'
+        if: matrix.crate == 'pact_ffi' && ( matrix.target == 'x86_64-unknown-linux-gnu'  ||  matrix.target == 'aarch64-unknown-linux-gnu' ||  matrix.target == 'arm-unknown-linux-gnueabi' || matrix.target == 'arm-unknown-linux-gnueabihf' ||  matrix.target == 'thumbv7neon-unknown-linux-gnueabihf' ||  matrix.target == 'i586-unknown-linux-gnu' || matrix.target == 'i686-unknown-linux-gnu' || matrix.target == 'armv5te-unknown-linux-gnueabi' || matrix.target == 'arm-linux-androideabi' || matrix.target == 'thumbv7neon-linux-androideabi' || matrix.target == 'x86_64-unknown-freebsd' || matrix.target == 'x86_64-unknown-netbsd')
         run: |
           gzip -c target/${{ matrix.target }}/release/libpact_ffi.so > target/artifacts/libpact_ffi-${{ matrix.target }}.so.gz
           openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.so.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.so.gz.sha256
         working-directory: rust
+      - name: Process the dll file
+        if: matrix.crate == 'pact_ffi' && ( matrix.target == 'i686-pc-windows-gnu' || matrix.target == 'x86_64-pc-windows-gnu')
+        run: |
+          gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
+          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
+        working-directory: rust
+      - name: Process the a file
+        if: matrix.crate == 'pact_ffi' && ( matrix.target != 'i686-pc-windows-gnu' || matrix.target != 'x86_64-pc-windows-gnu')
+        run: |
+          gzip -c target/${{ matrix.target }}/release/libpact_ffi.a > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz
+          openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz.sha256
+        working-directory: rust
       - name: Process the artifacts
-        if: matrix.crate == 'pact_verifier_cli'
+        if: (matrix.crate == 'pact_verifier_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu')) 
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_verifier_cli > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz
           openssl dgst -sha256 -r target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz.sha256
         working-directory: rust
       - name: Process the artifacts
-        if: matrix.crate == 'pact_mock_server_cli'
+        if: (matrix.crate == 'pact_mock_server_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu'))
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_mock_server_cli > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz
           openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz.sha256
         working-directory: rust
-      - name: Upload the artifacts
-        if: startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: release-artifacts
-          path: rust/target/artifacts
-      - name: Upload Release Assets
-        if: startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')
-        uses: svenstaro/upload-release-action@2.5.0
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: rust/target/artifacts/*
-          file_glob: true
-          tag: ${{ github.ref }}
-  
-  # build_cross:
-  #   runs-on: ${{ matrix.operating-system }}
-  #   needs: setup_matrix
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       operating-system: [ubuntu-latest]
-  #       rust: [nightly]
-  #       target: # https://github.com/cross-rs/cross/blob/main/targets.toml
-  #         - x86_64-unknown-freebsd # ✅ (fails on verifier and mock_server_cli - error: linking with `x86_64-unknown-freebsd12-gcc - libelf.so.2 not found)
-  #         # - asmjs-unknown-emscripten
-  #         - mips-unknown-linux-gnu
-  #         - mipsel-unknown-linux-gnu
-  #         - mips64-unknown-linux-gnuabi64
-  #         - mips64el-unknown-linux-gnuabi64
-  #         - mips64-unknown-linux-muslabi64
-  #         - mips64el-unknown-linux-muslabi64
-  #         - powerpc-unknown-linux-gnu
-  #         - powerpc64-unknown-linux-gnu
-  #         - powerpc64le-unknown-linux-gnu
-  #         - riscv64gc-unknown-linux-gnu
-  #         - s390x-unknown-linux-gnu
-  #         - sparc64-unknown-linux-gnu
-  #         - mips-unknown-linux-musl
-  #         - mipsel-unknown-linux-musl
-  #         - aarch64-linux-android
-  #         - i686-linux-android
-  #         - x86_64-linux-android
-  #         # - wasm32-unknown-emscripten
-  #         - x86_64-unknown-dragonfly
-  #         - i686-unknown-freebsd
-  #         - sparcv9-sun-solaris
-  #         - x86_64-sun-solaris
-  #         - x86_64-unknown-illumos
-  #         - thumbv6m-none-eabi
-  #         - thumbv7em-none-eabi
-  #         - thumbv7em-none-eabihf
-  #         - thumbv7m-none-eabi
-  #       crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - run: rustc --version || true
-  #       shell: bash
-  #     - uses: dtolnay/rust-toolchain@nightly
-  #       with:
-  #         toolchain: nightly
-  #         targets: ${{ matrix.target }}
-  #     - run: docker run --privileged --rm tonistiigi/binfmt --install all
-  #     - name: install cross for ${{ matrix.target }}
-  #       run: cargo install cross --git https://github.com/cross-rs/cross
-  #       working-directory: rust/${{ matrix.crate }}
-  #       shell: bash
-  #     - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
-  #       run: cross build --target ${{ matrix.target }} --release
-  #       working-directory: rust/${{ matrix.crate }}
-  #       shell: bash
-  #     - name: Show ${{ matrix.crate }} release
-  #       run: ls && mkdir -p ../../artifacts/
-  #       working-directory: rust/target/${{ matrix.target }}/release
-  #       shell: bash
-  #     - name: Process the so file
-  #       if: matrix.crate == 'pact_ffi' && ( matrix.target == 'x86_64-unknown-linux-gnu'  ||  matrix.target == 'aarch64-unknown-linux-gnu' ||  matrix.target == 'arm-unknown-linux-gnueabi' || matrix.target == 'arm-unknown-linux-gnueabihf' ||  matrix.target == 'thumbv7neon-unknown-linux-gnueabihf' ||  matrix.target == 'i586-unknown-linux-gnu' || matrix.target == 'i686-unknown-linux-gnu' || matrix.target == 'armv5te-unknown-linux-gnueabi' || matrix.target == 'arm-linux-androideabi' || matrix.target == 'thumbv7neon-linux-androideabi' || matrix.target == 'x86_64-unknown-freebsd' || matrix.target == 'x86_64-unknown-netbsd')
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/libpact_ffi.so > target/artifacts/libpact_ffi-${{ matrix.target }}.so.gz
-  #         openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.so.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.so.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the dll file
-  #       if: matrix.crate == 'pact_ffi' && ( matrix.target == 'i686-pc-windows-gnu' || matrix.target == 'x86_64-pc-windows-gnu')
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the a file
-  #       if: matrix.crate == 'pact_ffi' && ( matrix.target != 'i686-pc-windows-gnu' || matrix.target != 'x86_64-pc-windows-gnu')
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/libpact_ffi.a > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz
-  #         openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the artifacts
-  #       if: (matrix.crate == 'pact_verifier_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu')) 
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_verifier_cli > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the artifacts
-  #       if: (matrix.crate == 'pact_mock_server_cli' && ( matrix.target != 'i686-pc-windows-gnu' && matrix.target != 'x86_64-pc-windows-gnu'))
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_mock_server_cli > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the artifacts
-  #       if: matrix.crate == 'pact_verifier_cli'  && ( matrix.target == 'i686-pc-windows-gnu' || matrix.target == 'x86_64-pc-windows-gnu')
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_verifier_cli.exe > target/artifacts/pact_verifier_cli-${{ matrix.target }}.exe.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_verifier_cli-${{ matrix.target }}.exe.gz > target/artifacts/pact_verifier_cli-${{ matrix.target }}.exe.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the artifacts
-  #       if: matrix.crate == 'pact_mock_server_cli'  && ( matrix.target == 'i686-pc-windows-gnu' || matrix.target == 'x86_64-pc-windows-gnu')
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_mock_server_cli.exe > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz.sha256
-  #       working-directory: rust
-  #     - name: Upload the artifacts
-  #       if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')) 
-  #       uses: actions/upload-artifact@v3.1.2
-  #       with:
-  #         name: release-artifacts
-  #         path: rust/target/artifacts
-  #     - name: Upload Release Assets
-  #       if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli'))
-  #       uses: svenstaro/upload-release-action@2.5.0
-  #       with:
-  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #         file: rust/target/artifacts/*
-  #         file_glob: true
-  #         tag: ${{ github.ref }}
-  
-  # build_mac:
-  #   runs-on: ${{ matrix.operating-system }}
-  #   needs: setup_matrix
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       operating-system: [macos-latest]
-  #       rust: [nightly]
-  #       target:
-  #           - x86_64h-apple-darwin
-  #           - i686-apple-darwin
-  #           - armv7k-apple-watchos
-  #           - armv7s-apple-ios
-  #           - armv7-apple-ios
-  #           - aarch64-apple-ios-macabi
-  #           - aarch64-apple-tvos
-  #           - aarch64-apple-watchos-sim
-  #           - arm64_32-apple-watchos
-  #           - x86_64-apple-ios-macabi
-  #           - x86_64-apple-tvos
-  #           - x86_64-apple-watchos-sim
-  #           - i386-apple-ios
-  #       crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - run: rustc --version || true
-  #       shell: bash
-  #     - uses: dtolnay/rust-toolchain@nightly
-  #       with:
-  #         toolchain: nightly
-  #         targets: ${{ matrix.target }}
-  #     - name: Build ${{ matrix.crate }}
-  #       run: cargo build --target ${{ matrix.target }} --release
-  #       working-directory: rust/${{ matrix.crate }}
-  #       shell: bash
-  #     - name: Show ${{ matrix.crate }} release
-  #       run: ls && mkdir -p ../../artifacts/
-  #       working-directory: rust/target/${{ matrix.target }}/release
-  #       shell: bash
-  #     - name: Process the artifacts
-  #       if: matrix.crate == 'pact_ffi'
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/libpact_ffi.dylib > target/artifacts/libpact_ffi-${{ matrix.target }}.dylib.gz
-  #         openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.dylib.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.dylib.gz.sha256
-  #         gzip -c target/${{ matrix.target }}/release/libpact_ffi.a > target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz
-  #         openssl dgst -sha256 -r target/artifacts/libpact_ffi-${{ matrix.target }}.a.gz > target/artifacts/libpact_ffi-${{ matrix.target }}.dylib.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the artifacts
-  #       if: matrix.crate == 'pact_verifier_cli'
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_verifier_cli > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz > target/artifacts/pact_verifier_cli-${{ matrix.target }}.gz.sha256
-  #       working-directory: rust
-  #     - name: Process the artifacts
-  #       if: matrix.crate == 'pact_mock_server_cli'
-  #       run: |
-  #         gzip -c target/${{ matrix.target }}/release/pact_mock_server_cli > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz
-  #         openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.gz.sha256
-  #       working-directory: rust
-  #     - name: Upload the artifacts
-  #       if: startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')
-  #       uses: actions/upload-artifact@v3.1.2
-  #       with:
-  #         name: release-artifacts
-  #         path: rust/target/artifacts
-  #     - name: Upload Release Assets
-  #       if: startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')
-  #       uses: svenstaro/upload-release-action@2.5.0
-  #       with:
-  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #         file: rust/target/artifacts/*
-  #         file_glob: true
-  #         tag: ${{ github.ref }}
-  
-  # build_windows:
-    runs-on: ${{ matrix.operating-system }}
-    needs: setup_matrix
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [windows-latest]
-        rust: [stable]
-        target:
-          - i686-pc-windows-gnu # ✅ with cross, native with cargo error: linker `i686-w64-mingw32-gcc` not found
-          - i586-pc-windows-msvc
-          - aarch64-pc-windows-gnullvm
-          - aarch64-uwp-windows-msvc
-          - i686-uwp-windows-gnu
-          - i686-uwp-windows-msvc
-          - thumbv7a-pc-windows-msvc
-          - thumbv7a-uwp-windows-msvc
-          - x86_64-pc-windows-gnullvm
-          - x86_64-uwp-windows-gnu
-          - x86_64-uwp-windows-msvc
-        crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
-    steps:
-      - uses: actions/checkout@v3
-      - run: rustc --version || true
-        shell: bash
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          toolchain: nightly
-          targets: ${{ matrix.target }}
-      - name: Ring 0.16.20 patch for ARM64
-        if: matrix.target == 'aarch64-pc-windows-msvc' || matrix.target == 'aarch64-pc-windows-gnullvm' || matrix.target == 'aarch64-uwp-windows-msvc'
-        run: |
-          echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >> cargo.toml
-          cargo update
-        working-directory: rust
-        shell: bash
-      - name: install compiler deps (mingw64)
-        if: matrix.target == 'i686-pc-windows-gnu'
-        run: choco install --yes mingw
-        shell: bash
-      - name: Build ${{ matrix.crate }}
-        run: cargo build --target ${{ matrix.target }} --release
-        working-directory: rust/${{ matrix.crate }}
-        shell: bash
-      - name: Show ${{ matrix.crate }} release
-        run: ls && mkdir -p ../../artifacts/
-        working-directory: rust/target/${{ matrix.target }}/release
-        shell: bash
       - name: Process the artifacts
-        if: matrix.crate == 'pact_ffi' && matrix.target != 'x86_64-pc-windows-gnu'
-        run: |
-          gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
-          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
-          gzip -c target/${{ matrix.target }}/release/pact_ffi.dll.lib > target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz
-          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.lib.gz.sha256
-          gzip -c target/${{ matrix.target }}/release/pact_ffi.lib > target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz
-          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz > target/artifacts/pact_ffi-${{ matrix.target }}.lib.gz.sha256
-        working-directory: rust
-      - name: Process the artifacts
-        if: matrix.crate == 'pact_ffi' && matrix.target == 'x86_64-pc-windows-gnu'
-        run: |
-          gzip -c target/${{ matrix.target }}/release/pact_ffi.dll > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz
-          openssl dgst -sha256 -r target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz > target/artifacts/pact_ffi-${{ matrix.target }}.dll.gz.sha256
-        working-directory: rust
-      - name: Process the artifacts
-        if: matrix.crate == 'pact_verifier_cli'
+        if: matrix.crate == 'pact_verifier_cli'  && ( matrix.target == 'i686-pc-windows-gnu' || matrix.target == 'x86_64-pc-windows-gnu')
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_verifier_cli.exe > target/artifacts/pact_verifier_cli-${{ matrix.target }}.exe.gz
           openssl dgst -sha256 -r target/artifacts/pact_verifier_cli-${{ matrix.target }}.exe.gz > target/artifacts/pact_verifier_cli-${{ matrix.target }}.exe.gz.sha256
         working-directory: rust
       - name: Process the artifacts
-        if: matrix.crate == 'pact_mock_server_cli'
+        if: matrix.crate == 'pact_mock_server_cli'  && ( matrix.target == 'i686-pc-windows-gnu' || matrix.target == 'x86_64-pc-windows-gnu')
         run: |
           gzip -c target/${{ matrix.target }}/release/pact_mock_server_cli.exe > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz
           openssl dgst -sha256 -r target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz > target/artifacts/pact_mock_server_cli-${{ matrix.target }}.exe.gz.sha256
         working-directory: rust
       - name: Upload the artifacts
-        if: startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')
+        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')) 
         uses: actions/upload-artifact@v3.1.2
         with:
           name: release-artifacts
           path: rust/target/artifacts
       - name: Upload Release Assets
-        if: startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli')
+        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli'))
         uses: svenstaro/upload-release-action@2.5.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
