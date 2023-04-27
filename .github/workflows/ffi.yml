@@ -37,7 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
@@ -45,7 +44,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly
-      - name: Build ${{ matrix.crate }} with cargo for ${{ matrix.target }}
+      - name: Build headers with cargo pact_ffi
         run: |
           mkdir -p ../target/artifacts
           echo -- Generate the header files --
@@ -61,7 +60,7 @@ jobs:
             --output include/pact-cpp.h
           cp include/*.h ../target/artifacts
           ls ../target/artifacts
-        working-directory: rust/${{ matrix.crate }}
+        working-directory: rust/pact_ffi
         shell: bash
       - name: Upload the artifacts
         if: startsWith(github.ref, 'refs/tags/libpact_ffi') 
