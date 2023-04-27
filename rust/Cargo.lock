@@ -1944,7 +1944,7 @@ dependencies = [
 
 [[package]]
 name = "pact_ffi"
-version = "0.4.5"
+version = "0.4.4"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -2072,7 +2072,7 @@ dependencies = [
 
 [[package]]
 name = "pact_mock_server_cli"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "anyhow",
  "clap 3.2.23",
@@ -2231,7 +2231,7 @@ dependencies = [
 
 [[package]]
 name = "pact_verifier_cli"
-version = "0.10.7"
+version = "0.10.6"
 dependencies = [
  "ansi_term",
  "anyhow",
