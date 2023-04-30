@@ -67,7 +67,7 @@ jobs:
         - armv5te-unknown-linux-musleabi
         - arm-linux-androideabi
         - armv7-linux-androideabi
-        - asmjs-unknown-emscripten
+        # - asmjs-unknown-emscripten
         - mips-unknown-linux-gnu
         - mips-unknown-linux-musl
         - mipsel-unknown-linux-gnu
@@ -125,10 +125,6 @@ jobs:
         with:
           toolchain: nightly
           target: ${{ matrix.target }}
-      # - name: install cross for ${{ matrix.target }}
-      #   run: cargo install cross --git https://github.com/cross-rs/cross
-      #   working-directory: rust/${{ matrix.crate }}
-        # shell: bash
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}
@@ -136,7 +132,7 @@ jobs:
         env:
           target: ${{ matrix.target }}
       - name: Show ${{ matrix.crate }} release
-        run: ls && mkdir -p ../../artifacts/
+        run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
         shell: bash
       - name: Upload the artifacts
