@@ -16,66 +16,106 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         target: [x86_64-unknown-linux-gnu]
+        crate: [pact_ffi]
         include:
           - os: windows-latest
-            target:
-              - x86_64-pc-windows-msvc # ✅
-              - aarch64-pc-windows-msvc # ✅
-              - i686-pc-windows-msvc # ✅
-              - i686-pc-windows-gnu # ✅ with cross, native with cargo error: linker `i686-w64-mingw32-gcc` not found
-              - x86_64-pc-windows-gnu # ✅
-              - i586-pc-windows-msvc
-              - aarch64-pc-windows-gnullvm
-              - aarch64-uwp-windows-msvc
-              - i686-uwp-windows-gnu
-              - i686-uwp-windows-msvc
-              - thumbv7a-pc-windows-msvc
-              - thumbv7a-uwp-windows-msvc
-              - x86_64-pc-windows-gnullvm
-              - x86_64-uwp-windows-gnu
-              - x86_64-uwp-windows-msvc
+            target: x86_64-pc-windows-msvc # ✅
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc # ✅
+          - os: windows-latest
+            target: i686-pc-windows-msvc # ✅
+          - os: windows-latest
+            target: i686-pc-windows-gnu # ✅ with cross, native with cargo error: linker `i686-w64-mingw32-gcc` not found
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu # ✅
+          - os: windows-latest
+            target: i586-pc-windows-msvc
+          - os: windows-latest
+            target: aarch64-pc-windows-gnullvm
+          - os: windows-latest
+            target: aarch64-uwp-windows-msvc
+          - os: windows-latest
+            target: i686-uwp-windows-gnu
+          - os: windows-latest
+            target: i686-uwp-windows-msvc
+          - os: windows-latest
+            target: thumbv7a-pc-windows-msvc
+          - os: windows-latest
+            target: thumbv7a-uwp-windows-msvc
+          - os: windows-latest
+            target: x86_64-pc-windows-gnullvm
+          - os: windows-latest
+            target: x86_64-uwp-windows-gnu
+          - os: windows-latest
+            target: x86_64-uwp-windows-msvc
           - os: macos-latest
-            target:
-              - aarch64-apple-darwin # ✅
-              - x86_64-apple-darwin # ✅
-              - aarch64-apple-ios # ✅
-              - aarch64-apple-ios-sim # ✅
-              - x86_64-apple-ios # ✅
-              - x86_64h-apple-darwin
-              - i686-apple-darwin
-              - armv7k-apple-watchos
-              - armv7s-apple-ios
-              - armv7-apple-ios
-              - aarch64-apple-ios-macabi
-              - aarch64-apple-tvos
-              - aarch64-apple-watchos-sim
-              - arm64_32-apple-watchos
-              - x86_64-apple-ios-macabi
-              - x86_64-apple-tvos
-              - x86_64-apple-watchos-sim
-              - i386-apple-ios
+            target: aarch64-apple-darwin # ✅
+          - os: macos-latest
+            target: x86_64-apple-darwin # ✅
+          - os: macos-latest
+            target: aarch64-apple-ios # ✅
+          - os: macos-latest
+            target: aarch64-apple-ios-sim # ✅
+          - os: macos-latest
+            target: x86_64-apple-ios # ✅
+          - os: macos-latest
+            target: x86_64h-apple-darwin
+          - os: macos-latest
+            target: i686-apple-darwin
+          - os: macos-latest
+            target: armv7k-apple-watchos
+          - os: macos-latest
+            target: armv7s-apple-ios
+          - os: macos-latest
+            target: armv7-apple-ios
+          - os: macos-latest
+            target: aarch64-apple-ios-macabi
+          - os: macos-latest
+            target: aarch64-apple-tvos
+          - os: macos-latest
+            target: aarch64-apple-watchos-sim
+          - os: macos-latest
+            target: arm64_32-apple-watchos
+          - os: macos-latest
+            target: x86_64-apple-ios-macabi
+          - os: macos-latest
+            target: x86_64-apple-tvos
+          - os: macos-latest
+            target: x86_64-apple-watchos-sim
+          - os: macos-latest
+            target: i386-apple-ios
           - os: ubuntu-latest
-            crate: [pact_ffi]
-            target: # https://github.com/cross-rs/cross/blob/main/targets.toml
-              # - x86_64-unknown-linux-gnu
-              - x86_64-unknown-linux-musl
-              - aarch64-unknown-linux-gnu
-              - aarch64-unknown-linux-musl
-              - arm-unknown-linux-gnueabi
-              - arm-unknown-linux-gnueabihf
-              - arm-unknown-linux-musleabi
-              - arm-unknown-linux-musleabihf
-              - armv7-unknown-linux-gnueabi
-              - armv7-unknown-linux-gnueabihf
-              - armv7-unknown-linux-musleabi
-              - armv7-unknown-linux-musleabihf
-              - i586-unknown-linux-gnu
-              - i686-unknown-linux-gnu
-
-
-
-              - i586-unknown-linux-musl
-              - i686-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: arm-unknown-linux-gnueabi
+          - os: ubuntu-latest
+            target: arm-unknown-linux-gnueabihf
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabi
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabihf
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabi
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-musleabi
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-musleabihf
+          - os: ubuntu-latest
+            target: i586-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: i586-unknown-linux-musl
+          - os: ubuntu-latest
+            target: i686-unknown-linux-musl
               # = note: /usr/local/bin/../lib/gcc/i586-linux-musl/9.2.0/../../../../i586-linux-musl/bin/ld: /target/i586-unknown-linux-musl/release/deps/libring-85b4fbaf5798ec9c.rlib(aes_nohw.o): in function `GFp_aes_nohw_ctr32_encrypt_blocks':
               #   /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/aes_nohw.c:961: undefined reference to `__stack_chk_fail_local'
               #   /usr/local/bin/../lib/gcc/i586-linux-musl/9.2.0/../../../../i586-linux-musl/bin/ld: /target/i586-unknown-linux-musl/release/deps/libring-85b4fbaf5798ec9c.rlib(poly1305.o): in function `poly1305_update':
@@ -91,9 +131,12 @@ jobs:
               # = note: some `extern` functions couldn't be found; some native libraries may need to be installed or have their path specified
               # = note: use the `-l` flag to specify native libraries to link
               # = note: use the `cargo:rustc-link-lib` directive to specify the native libraries to link with Cargo (see https://doc.rust-lang.org/cargo/reference/build-scripts.html#cargorustc-link-libkindname)
-              - x86_64-unknown-netbsd
-              - x86_64-unknown-freebsd
-              - i686-unknown-freebsd
+          - os: ubuntu-latest
+            target: x86_64-unknown-netbsd
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+          - os: ubuntu-latest
+            target: i686-unknown-freebsd
               # /usr/local/lib/gcc/i686-unknown-freebsd12/6.4.0/../../../../i686-unknown-freebsd12/bin/ld: /target/i686-unknown-freebsd/release/deps/libring-045c2b14a100e932.rlib(aes_nohw.o): in function `GFp_aes_nohw_ctr32_encrypt_blocks':
               #   /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/aes_nohw.c:961: undefined reference to `__stack_chk_fail_local'
               #   /usr/local/lib/gcc/i686-unknown-freebsd12/6.4.0/../../../../i686-unknown-freebsd12/bin/ld: /target/i686-unknown-freebsd/release/deps/libring-045c2b14a100e932.rlib(poly1305.o): in function `poly1305_update':
@@ -109,101 +152,132 @@ jobs:
               # = note: some `extern` functions couldn't be found; some native libraries may need to be installed or have their path specified
               # = note: use the `-l` flag to specify native libraries to link
               # = note: use the `cargo:rustc-link-lib` directive to specify the native libraries to link with Cargo (see https://doc.rust-lang.org/cargo/reference/build-scripts.html#cargorustc-link-libkindname)
-              - aarch64-unknown-freebsd
+          - os: ubuntu-latest
+            target: aarch64-unknown-freebsd
               # error: component 'rust-std' for target 'aarch64-unknown-freebsd' is unavailable for download for channel 'nightly'
-              - armv6-unknown-freebsd
+          - os: ubuntu-latest
+            target: armv6-unknown-freebsd
               # error: component 'rust-std' for target 'armv6-unknown-freebsd' is unavailable for download for channel 'nightly'
-              - armv7-unknown-freebsd
+          - os: ubuntu-latest
+            target: armv7-unknown-freebsd
               # error: component 'rust-std' for target 'armv7-unknown-freebsd' is unavailable for download for channel 'nightly'
-              - armv5te-unknown-linux-gnueabi
-              - armv5te-unknown-linux-musleabi
-              - arm-linux-androideabi
-              - armv7-linux-androideabi
+          - os: ubuntu-latest
+            target: armv5te-unknown-linux-gnueabi
+          - os: ubuntu-latest
+            target: armv5te-unknown-linux-musleabi
+          - os: ubuntu-latest
+            target: arm-linux-androideabi
+          - os: ubuntu-latest
+            target: armv7-linux-androideabi
               # - asmjs-unknown-emscripten
               # 199 |     compile_error!("unsupported target for `mio::unix::pipe`");
 
               # All MIPS builds - error: failed to run custom build command for `ring v0.16.20`
-              - mips-unknown-linux-gnu
-              - mips-unknown-linux-musl
-              - mipsel-unknown-linux-gnu
-              - mipsel-unknown-linux-musl
-              - mips64-unknown-linux-gnuabi64
-              - mips64el-unknown-linux-gnuabi64
-              - mips64-unknown-linux-muslabi64
-              - mips64el-unknown-linux-muslabi64
-
-
-              - powerpc-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: mips-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: mips-unknown-linux-musl
+          - os: ubuntu-latest
+            target: mipsel-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: mipsel-unknown-linux-musl
+          - os: ubuntu-latest
+            target: mips64-unknown-linux-gnuabi64
+          - os: ubuntu-latest
+            target: mips64el-unknown-linux-gnuabi64
+          - os: ubuntu-latest
+            target: mips64-unknown-linux-muslabi64
+          - os: ubuntu-latest
+            target: mips64el-unknown-linux-muslabi64
+          - os: ubuntu-latest
+            target: powerpc-unknown-linux-gnu
               # error: failed to run custom build command for `ring v0.16.20`
-              - powerpc64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: powerpc64-unknown-linux-gnu
               # error: failed to run custom build command for `ring v0.16.20`
-              - powerpc64le-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: powerpc64le-unknown-linux-gnu
               # error: failed to run custom build command for `ring v0.16.20`
-              - powerpc64le-unknown-linux-musl
+          - os: ubuntu-latest
+            target: powerpc64le-unknown-linux-musl
               # error: component 'rust-std' for target 'powerpc64le-unknown-linux-musl' is unavailable for download for channel 'nightly'
-              - riscv64gc-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: riscv64gc-unknown-linux-gnu
               # error: failed to run custom build command for `ring v0.16.20`
-              - s390x-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: s390x-unknown-linux-gnu
               # error: failed to run custom build command for `ring v0.16.20`
-              - s390x-unknown-linux-musl
+          - os: ubuntu-latest
+            target: s390x-unknown-linux-musl
               # error: component 'rust-std' for target 's390x-unknown-linux-musl' is unavailable for download for channel 'nightly'
-              - sparc64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: sparc64-unknown-linux-gnu
               # error: failed to run custom build command for `ring v0.16.20`
-              - aarch64-linux-android
-              - i686-linux-android
-              - x86_64-linux-android
-              
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+          - os: ubuntu-latest
+            target: i686-linux-android
+          - os: ubuntu-latest
+            target: x86_64-linux-android
               # - wasm32-unknown-emscripten
               # 199 |     compile_error!("unsupported target for `mio::unix::pipe`");
-
-              - sparcv9-sun-solaris
+          - os: ubuntu-latest
+            target: sparcv9-sun-solaris
               # 199 |     compile_error!("unsupported target for `mio::unix::pipe`");
-              - x86_64-sun-solaris
+          - os: ubuntu-latest
+            target: x86_64-sun-solaris
               # 199 |     compile_error!("unsupported target for `mio::unix::pipe`");
-              - x86_64-unknown-illumos
+          - os: ubuntu-latest
+            target: x86_64-unknown-illumos
               # error[E0425]: cannot find function `allocate` in module `sys`
               #  --> /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/fs2-0.4.3/src/lib.rs:104:14
-              - x86_64-unknown-dragonfly
-
-
-
+          - os: ubuntu-latest
+            target: x86_64-unknown-dragonfly
               # error[E0463]: can't find crate for `std`
               # |
               # = note: the `thumbv6m-none-eabi` target may not support the standard library
               # = note: `std` is required by `serde` because it does not declare `#![no_std]`
               # = help: consider building the standard library from source with `cargo build -Zbuild-std`
-              - thumbv6m-none-eabi
-              - thumbv7em-none-eabi
-              - thumbv7em-none-eabihf
-              - thumbv7m-none-eabi
-              - thumbv8m.base-none-eabi
-              - thumbv8m.main-none-eabi
-
-
-
-
-              - thumbv7neon-linux-androideabi
-              - thumbv7neon-unknown-linux-gnueabihf
-
-              
-              - x86_64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: thumbv6m-none-eabi
+          - os: ubuntu-latest
+            target: thumbv7em-none-eabi
+          - os: ubuntu-latest
+            target: thumbv7em-none-eabihf
+          - os: ubuntu-latest
+            target: thumbv7m-none-eabi
+          - os: ubuntu-latest
+            target: thumbv8m.base-none-eabi
+          - os: ubuntu-latest
+            target: thumbv8m.main-none-eabi
+          - os: ubuntu-latest
+            target: thumbv7neon-linux-androideabi
+          - os: ubuntu-latest
+            target: thumbv7neon-unknown-linux-gnueabihf
+          - os: ubuntu-latest
+            target: x86_64-pc-windows-msvc
               # --- stderr
               # running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-m64" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/x86_64-pc-windows-msvc/release/build/ring-6ebd52ee81449ee8/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
               # cc: error: -E or -x required when input is from standard input
               # thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
               # note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-              - x86_64-pc-windows-gnu # ✅
-              - aarch64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-pc-windows-gnu # ✅
+          - os: ubuntu-latest
+            target: aarch64-pc-windows-msvc
               # --- stderr
               # running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/aarch64-pc-windows-msvc/release/build/ring-9d224d33b6544594/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
               # cc: error: -E or -x required when input is from standard input
               # thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
     
-              - aarch64-pc-windows-gnullvm
+          - os: ubuntu-latest
+            target: aarch64-pc-windows-gnullvm
               # error: component 'rust-std' for target 'aarch64-pc-windows-gnullvm' is unavailable for download for channel 'nightly'
-              - aarch64-uwp-windows-msvc
+          - os: ubuntu-latest
+            target: aarch64-uwp-windows-msvc
               # error: component 'rust-std' for target 'aarch64-uwp-windows-msvc' is unavailable for download for channel 'nightly'
-              - i586-pc-windows-msvc
+          - os: ubuntu-latest
+            target: i586-pc-windows-msvc
               # --- stderr
               # running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-m32" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/i586-pc-windows-msvc/release/build/ring-c2331d92d4e35b3e/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
               # cc: error: -E or -x required when input is from standard input
@@ -217,9 +291,10 @@ jobs:
               # compilation terminated.
               # thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
               # note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-              - i686-pc-windows-gnu
-              - i686-pc-windows-msvc
+          - os: ubuntu-latest
+            target: i686-pc-windows-gnu
+          - os: ubuntu-latest
+            target: i686-pc-windows-msvc
               #   --- stderr
               #   running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-m32" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/i686-pc-windows-msvc/release/build/ring-1b1a65c4b81efaf2/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
               #   cc: error: -E or -x required when input is from standard input
@@ -234,24 +309,27 @@ jobs:
               #   thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
               #   note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
               # warning: build failed, waiting for other jobs to finish...
-              - i686-uwp-windows-gnu
+          - os: ubuntu-latest
+            target: i686-uwp-windows-gnu
               # error: component 'rust-std' for target 'i686-uwp-windows-gnu' is unavailable for download for channel 'nightly'
-              - i686-uwp-windows-msvc
+          - os: ubuntu-latest
+            target: i686-uwp-windows-msvc
               # error: component 'rust-std' for target 'i686-uwp-windows-msvc' is unavailable for download for channel 'nightly'
-              - thumbv7a-pc-windows-msvc
+          - os: ubuntu-latest
+            target: thumbv7a-pc-windows-msvc
               # error: component 'rust-std' for target 'thumbv7a-pc-windows-msvc' is unavailable for download for channel 'nightly'
-              - thumbv7a-uwp-windows-msvc
+          - os: ubuntu-latest
+            target: thumbv7a-uwp-windows-msvc
               # error: component 'rust-std' for target 'thumbv7a-uwp-windows-msvc' is unavailable for download for channel 'nightly'
-
-              - x86_64-pc-windows-gnullvm
+          - os: ubuntu-latest
+            target: x86_64-pc-windows-gnullvm
               # error: component 'rust-std' for target 'x86_64-pc-windows-gnullvm' is unavailable for download for channel 'nightly'
-
-              - x86_64-uwp-windows-gnu
+          - os: ubuntu-latest
+            target: x86_64-uwp-windows-gnu
               # error: component 'rust-std' for target 'x86_64-uwp-windows-gnu' is unavailable for download for channel 'nightly'
-              - x86_64-uwp-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-uwp-windows-msvc
               # error: component 'rust-std' for target 'x86_64-uwp-windows-msvc' is unavailable for download for channel 'nightly'
-
-
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
