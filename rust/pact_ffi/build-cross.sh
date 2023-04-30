@@ -146,11 +146,7 @@ for target in "${targets[@]}"; do
 
   ls ../target/${target}/release
   echo -Build the release artifacts --
-  ## static lib
-  gzip -c ../target/${target}/release/${lib_name}.a >../target/artifacts/${lib_name}-${target}.a.gz
-  openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.a.gz >../target/artifacts/${lib_name}-${target}.a.gz.sha256
-
-  ## cdylib
+  ## cdylib - shared lib .so / .dll / .dylib depending on platform  
   gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
   openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
 
@@ -163,6 +159,13 @@ for target in "${targets[@]}"; do
     lib_ext=lib
     gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
     openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+  elif [[ $target == *"ios"* ]]; then
+      ## static lib .a 
+      ## these are 30mb each, I'm not sure who needs them?
+      ## ios platforms maybe, there is also refs in conan
+      ## but they are build with cargo lipo, see release-ios.sh
+      gzip -c ../target/${target}/release/${lib_name}.a >../target/artifacts/${lib_name}-${target}.a.gz
+      openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.a.gz >../target/artifacts/${lib_name}-${target}.a.gz.sha256
   fi
 
 done
