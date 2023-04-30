@@ -14,6 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        target: []
+        crate: []
         include:
           # - os: [windows-latest]
           #   target:
