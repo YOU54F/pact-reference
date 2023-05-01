@@ -17,7 +17,7 @@ jobs:
         os: [ubuntu-latest]
         crate: [pact_ffi]
         target: # https://github.com/cross-rs/cross/blob/main/targets.toml
-       # ✅ These all build with cross 
+          # ✅ These all build with cross 
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-gnu
@@ -43,13 +43,11 @@ jobs:
           - x86_64-linux-android
           - thumbv7neon-linux-androideabi
           - thumbv7neon-unknown-linux-gnueabihf
-        # ✅ The above build with cross 
+          # ✅ The above build with cross 
 
           # 🚧 This did build with cross?! 
 
           # - i686-pc-windows-gnu
-          ❌
-
           # ❌ These dont build with cross, or fall back to host and fail 
 
 
