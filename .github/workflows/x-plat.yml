@@ -127,21 +127,21 @@ jobs:
           # #  --> /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/fs2-0.4.3/src/lib.rs:104:14
 
 
-          - x86_64-unknown-dragonfly
+          # - x86_64-unknown-dragonfly
 
 
 
-          # error[E0463]: can't find crate for `std`
-          # |
-          # = note: the `thumbv6m-none-eabi` target may not support the standard library
-          # = note: `std` is required by `serde` because it does not declare `#![no_std]`
-          # = help: consider building the standard library from source with `cargo build -Zbuild-std`
-          - thumbv6m-none-eabi
-          - thumbv7em-none-eabi
-          - thumbv7em-none-eabihf
-          - thumbv7m-none-eabi
-          - thumbv8m.base-none-eabi
-          - thumbv8m.main-none-eabi
+          # # error[E0463]: can't find crate for `std`
+          # # |
+          # # = note: the `thumbv6m-none-eabi` target may not support the standard library
+          # # = note: `std` is required by `serde` because it does not declare `#![no_std]`
+          # # = help: consider building the standard library from source with `cargo build -Zbuild-std`
+          # - thumbv6m-none-eabi
+          # - thumbv7em-none-eabi
+          # - thumbv7em-none-eabihf
+          # - thumbv7m-none-eabi
+          # - thumbv8m.base-none-eabi
+          # - thumbv8m.main-none-eabi
 
 
 
@@ -157,7 +157,7 @@ jobs:
           # # thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
           # # note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
           - x86_64-pc-windows-gnu # ✅
-          - aarch64-pc-windows-msvc
+          # - aarch64-pc-windows-msvc
           # --- stderr
           # running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/aarch64-pc-windows-msvc/release/build/ring-9d224d33b6544594/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
           # cc: error: -E or -x required when input is from standard input
@@ -223,6 +223,15 @@ jobs:
         with:
           toolchain: nightly
           target: ${{ matrix.target }}
+      - name: install binfmt
+        run: docker run --privileged --rm tonistiigi/binfmt --install all
+        if: ${{ runner.os == 'Linux '}}
+      - name: install musl tools
+        run: |
+          if [[ ${{ matrix.target }} == *"musl"* ]]; then
+            sudo apt install musl-tools
+          fi
+        if: ${{ runner.os == 'Linux '}}
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}

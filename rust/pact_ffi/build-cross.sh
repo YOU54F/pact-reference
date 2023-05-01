@@ -121,15 +121,22 @@ for target in "${targets[@]}"; do
     # https://github.com/briansmith/ring/pull/1554
     # https://github.com/rust-lang/rustup/issues/2612#issuecomment-1433876793
     # https://github.com/rustls/rustls/pull/1108
+    echo "ring override for aarch64-pc-windows-msvc"
     echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >>../cargo.toml
     cd .. && cargo update
     cd pact_ffi
   fi
 
   if [[ $target == *"musl"* ]]; then
+    echo "building for musl $target"
     # https://github.com/rust-lang/cargo/issues/7154
     RUSTFLAGS="-C target-feature=-crt-static" cross build --target "${target}" --release
+  elif [[ $target == *"windows"* || $target == *"apple"*  && $CI == "true" ]];
+  # no dockers on github actions macos / windows
+    echo "building for $target with cargo"
+    cargo build --target "${target}" --release
   else
+    echo "building for $target with cross"
     cross build --target "${target}" --release
   fi
 
@@ -156,11 +163,11 @@ for target in "${targets[@]}"; do
       lib_ext=dll.lib
       gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
       openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+      ## lib
+      lib_ext=lib
+      gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
+      openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
     fi
-    ## lib
-    lib_ext=lib
-    gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
-    openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
   elif [[ $target == *"ios"* ]]; then
     ## static lib .a
     ## these are 30mb each, I'm not sure who needs them?
