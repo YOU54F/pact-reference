@@ -218,10 +218,10 @@ jobs:
       - uses: actions/checkout@v3
       - run: rustc --version || true
         shell: bash
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         continue-on-error: true
         with:
-          toolchain: nightly
+          toolchain: stable
           target: ${{ matrix.target }}
       - name: install binfmt
         run: docker run --privileged --rm tonistiigi/binfmt --install all
@@ -287,10 +287,10 @@ jobs:
       - uses: actions/checkout@v3
       - run: rustc --version || true
         shell: bash
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         continue-on-error: true
         with:
-          toolchain: nightly
+          toolchain: stable
           target: ${{ matrix.target }}
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
@@ -349,10 +349,10 @@ jobs:
       - uses: actions/checkout@v3
       - run: rustc --version || true
         shell: bash
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         continue-on-error: true
         with:
-          toolchain: nightly
+          toolchain: stable
           target: ${{ matrix.target }}
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
@@ -385,9 +385,9 @@ jobs:
       - uses: actions/checkout@v3
       - run: rustc --version || true
         shell: bash
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
+          toolchain: stable
       - name: Build headers with cargo pact_ffi
         run: ./build-headers.sh
         working-directory: rust/pact_ffi
