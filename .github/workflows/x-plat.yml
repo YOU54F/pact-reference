@@ -86,6 +86,10 @@ jobs:
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
         shell: bash
+      - name: Build the header file (required for the C FFI tests)
+        if: runner.os == 'Linux' && matrix.crate == 'pact_ffi' && matrix.target == 'x86_64-unknown-linux-gnu'
+        working-directory: rust/${{ matrix.crate }}
+        run: ./build-headers.sh
       - name: Run the C FFI tests
         if: runner.os == 'Linux' && matrix.crate == 'pact_ffi' && matrix.target == 'x86_64-unknown-linux-gnu'
         working-directory: c/consumer-verification
@@ -115,6 +119,7 @@ jobs:
 
   windows:
     runs-on: ${{ matrix.os }}
+    needs: setup_matrix
     defaults:
       run:
         shell: bash
@@ -211,6 +216,8 @@ jobs:
           file_glob: true
           tag: ${{ github.ref }}
 
+  # This step could be removed, as its performed as pre-req for C FFI tests
+  # performed in cross for target x86_64-unknown-linux-gnu
   build_headers:
     runs-on: ubuntu-latest
     steps:
