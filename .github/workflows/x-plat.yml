@@ -47,7 +47,7 @@ jobs:
 
           # 🚧 This did build with cross?! 
 
-          # - i686-pc-windows-gnu
+          - i686-pc-windows-gnu
           # ❌ These dont build with cross, or fall back to host and fail 
 
 
@@ -221,17 +221,6 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.target }}
-      # - name: install binfmt
-      #   run: docker run --privileged --rm tonistiigi/binfmt --install all
-      #   if: ${{ runner.os == 'Linux' }}
-      # - name: install musl tools
-      #   run: |
-      #     if [[ ${{ matrix.target }} == *"musl"* ]]; then
-      #       sudo apt install musl-tools musl-dev
-      #     elif [[ ${{ matrix.target }} == *"windows-gnu"* ]]; then
-      #       sudo apt install mingw-w64
-      #     fi
-      #   if: ${{ runner.os == 'Linux' }}
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}
