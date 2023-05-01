@@ -48,7 +48,7 @@ jobs:
           # 🚧 This did build with cross?! 
 
           - i686-pc-windows-gnu
-          ❌
+          # ❌
 
           # ❌ These dont build with cross, or fall back to host and fail 
 
