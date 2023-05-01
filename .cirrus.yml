@@ -12,9 +12,9 @@
 BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
   build_ffi_script: |
     cd rust/pact_ffi
-    rustup target add ${BUILD_TARGET}
+    rustup target add ${target}
     ./build-cross.sh
-    ls ../target/${BUILD_TARGET}/artifacts
+    ls ../target/${target}/artifacts
 
 
 linux_arm64_task: 
@@ -27,6 +27,7 @@ linux_arm64_task:
     CIRRUS_CI: true
     matrix:
       - target: aarch64-unknown-linux-gnu
+      - target: x86_64-unknown-linux-gnu
   << : *BUILD_FFI_TASK_TEMPLATE
 
 # macosx_arm64_task: 
