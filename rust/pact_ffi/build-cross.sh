@@ -130,7 +130,7 @@ for target in "${targets[@]}"; do
     # https://github.com/rust-lang/cargo/issues/7154
     RUSTFLAGS="-C target-feature=-crt-static" cross build --target "${target}" --release
   else
-    cargo build --target "${target}" --release
+    cross build --target "${target}" --release
   fi
 
   if [[ $target == *"windows"* ]]; then
