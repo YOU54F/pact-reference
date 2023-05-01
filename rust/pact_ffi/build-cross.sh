@@ -85,23 +85,23 @@ targets=(
   thumbv8m.main-none-eabi
 
   x86_64-pc-windows-msvc # pass on win
-  x86_64-pc-windows-gnu # pass on win / linux cross
+  x86_64-pc-windows-gnu  # pass on win / linux cross
 
-  aarch64-pc-windows-msvc  # pass on win
+  aarch64-pc-windows-msvc # pass on win
   aarch64-pc-windows-gnullvm
-  aarch64-uwp-windows-msvc
+  # aarch64-uwp-windows-msvc
 
   i586-pc-windows-msvc
-  i686-pc-windows-gnu  # pass on win
+  i686-pc-windows-gnu # pass on win
   i686-pc-windows-msvc
-  i686-uwp-windows-gnu 
-  i686-uwp-windows-msvc
+  i686-uwp-windows-gnu
+  # i686-uwp-windows-msvc
 
-  thumbv7a-pc-windows-msvc
-  thumbv7a-uwp-windows-msvc
+  # thumbv7a-pc-windows-msvc
+  # thumbv7a-uwp-windows-msvc
 
-  x86_64-pc-windows-gnullvm
-  x86_64-uwp-windows-gnu 
+  # x86_64-pc-windows-gnullvm
+  # x86_64-uwp-windows-gnu
   x86_64-uwp-windows-msvc
 
 )
@@ -121,15 +121,16 @@ for target in "${targets[@]}"; do
     # https://github.com/briansmith/ring/pull/1554
     # https://github.com/rust-lang/rustup/issues/2612#issuecomment-1433876793
     # https://github.com/rustls/rustls/pull/1108
-    echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >>cargo.toml
-    cargo update
+    echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >>../cargo.toml
+    cd .. && cargo update
+    cd pact_ffi
   fi
 
   if [[ $target == *"musl"* ]]; then
     # https://github.com/rust-lang/cargo/issues/7154
     RUSTFLAGS="-C target-feature=-crt-static" cross build --target "${target}" --release
   else
-    cross build --target "${target}" --release
+    cargo build --target "${target}" --release
   fi
 
   if [[ $target == *"windows"* ]]; then
@@ -143,29 +144,30 @@ for target in "${targets[@]}"; do
     lib_name=libpact_ffi
   fi
 
-
   ls ../target/${target}/release
   echo -Build the release artifacts --
-  ## cdylib - shared lib .so / .dll / .dylib depending on platform  
+  ## cdylib - shared lib .so / .dll / .dylib depending on platform
   gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
   openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
 
   if [[ $target == *"windows"* ]]; then
-    ## dll.lib
-    lib_ext=dll.lib
-    gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
-    openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+    if [[ $target != *"gnu"* ]]; then
+      ## dll.lib
+      lib_ext=dll.lib
+      gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
+      openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+    fi
     ## lib
     lib_ext=lib
     gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
     openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
   elif [[ $target == *"ios"* ]]; then
-      ## static lib .a 
-      ## these are 30mb each, I'm not sure who needs them?
-      ## ios platforms maybe, there is also refs in conan
-      ## but they are build with cargo lipo, see release-ios.sh
-      gzip -c ../target/${target}/release/${lib_name}.a >../target/artifacts/${lib_name}-${target}.a.gz
-      openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.a.gz >../target/artifacts/${lib_name}-${target}.a.gz.sha256
+    ## static lib .a
+    ## these are 30mb each, I'm not sure who needs them?
+    ## ios platforms maybe, there is also refs in conan
+    ## but they are build with cargo lipo, see release-ios.sh
+    gzip -c ../target/${target}/release/${lib_name}.a >../target/artifacts/${lib_name}-${target}.a.gz
+    openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.a.gz >../target/artifacts/${lib_name}-${target}.a.gz.sha256
   fi
 
 done
