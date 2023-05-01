@@ -12,6 +12,7 @@
 BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
   build_ffi_script: |
     cd rust/pact_ffi
+    rustup target add ${BUILD_TARGET}
     ./build-cross.sh
     ls ../target/${BUILD_TARGET}/artifacts
 

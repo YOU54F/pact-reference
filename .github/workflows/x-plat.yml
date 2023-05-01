@@ -156,7 +156,7 @@ jobs:
           # # cc: error: -E or -x required when input is from standard input
           # # thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
           # # note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-          - x86_64-pc-windows-gnu # ✅
+          # - x86_64-pc-windows-gnu # ✅
           # - aarch64-pc-windows-msvc
           # --- stderr
           # running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/aarch64-pc-windows-msvc/release/build/ring-9d224d33b6544594/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
@@ -271,9 +271,9 @@ jobs:
           - x86_64-pc-windows-msvc # ✅
           - aarch64-pc-windows-msvc # ✅
           - i686-pc-windows-msvc # ✅
-          # - i686-pc-windows-gnu # ✅ with cross, native with cargo error: linker `i686-w64-mingw32-gcc` not found
+          - i686-pc-windows-gnu # ✅ with cross, native with cargo error: linker `i686-w64-mingw32-gcc` not found
           - x86_64-pc-windows-gnu # ✅
-          # - i586-pc-windows-msvc
+          - i586-pc-windows-msvc
           # - aarch64-pc-windows-gnullvm
           # - aarch64-uwp-windows-msvc
           # - i686-uwp-windows-gnu
