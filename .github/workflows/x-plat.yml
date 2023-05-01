@@ -53,7 +53,7 @@ jobs:
           # = note: use the `cargo:rustc-link-lib` directive to specify the native libraries to link with Cargo (see https://doc.rust-lang.org/cargo/reference/build-scripts.html#cargorustc-link-libkindname)
           - x86_64-unknown-netbsd
           - x86_64-unknown-freebsd
-          - i686-unknown-freebsd # fails to build
+          # - i686-unknown-freebsd # fails to build
           # /usr/local/lib/gcc/i686-unknown-freebsd12/6.4.0/../../../../i686-unknown-freebsd12/bin/ld: /target/i686-unknown-freebsd/release/deps/libring-045c2b14a100e932.rlib(aes_nohw.o): in function `GFp_aes_nohw_ctr32_encrypt_blocks':
           #   /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/aes_nohw.c:961: undefined reference to `__stack_chk_fail_local'
           #   /usr/local/lib/gcc/i686-unknown-freebsd12/6.4.0/../../../../i686-unknown-freebsd12/bin/ld: /target/i686-unknown-freebsd/release/deps/libring-045c2b14a100e932.rlib(poly1305.o): in function `poly1305_update':
@@ -182,7 +182,7 @@ jobs:
           # # thread 'main' panicked at 'execution failed', /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/build.rs:656:9
           # # note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-          - i686-pc-windows-gnu
+          # - i686-pc-windows-gnu
           # - i686-pc-windows-msvc
           # #   --- stderr
           # #   running "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-m32" "-I" "include" "-Wall" "-Wextra" "/GS" "/Gy" "/EHsc" "/GR-" "/Zc:wchar_t" "/Zc:forScope" "/Zc:inline" "/Zc:rvalueCast" "/sdl" "/Wall" "/wd4127" "/wd4464" "/wd4514" "/wd4710" "/wd4711" "/wd4820" "/wd5045" "/Ox" "-DNDEBUG" "-c" "/Fo/home/runner/work/pact-reference/pact-reference/rust/target/i686-pc-windows-msvc/release/build/ring-1b1a65c4b81efaf2/out/aes_nohw.obj" "crypto/fipsmodule/aes/aes_nohw.c"
@@ -229,7 +229,9 @@ jobs:
       - name: install musl tools
         run: |
           if [[ ${{ matrix.target }} == *"musl"* ]]; then
-            sudo apt install musl-tools
+            sudo apt install musl-tools linux-musl-dev
+          elif [[ ${{ matrix.target }} == *"windows-gnu"* ]]; then
+            sudo apt install mingw-w64
           fi
         if: ${{ runner.os == 'Linux' }}
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}

@@ -131,8 +131,9 @@ for target in "${targets[@]}"; do
     echo "building for musl $target"
     # https://github.com/rust-lang/cargo/issues/7154
     RUSTFLAGS="-C target-feature=-crt-static" cross build --target "${target}" --release
-  elif [[ (($target == *"windows"* || $target == *"apple"*)  && $CI == "true") || $CIRRUS_CI = "true" ]]; then
+  elif [[ ($CI == "true" && $(uname -s) != "Linux") || $CIRRUS_CI = "true" ]]; then
     # no docker on github actions macos / windows
+    # no docker in docker in cirrus
     echo "building for $target with cargo"
     cargo build --target "${target}" --release
   else
