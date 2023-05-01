@@ -34,8 +34,8 @@ jobs:
 
 
 
-          - i586-unknown-linux-musl
-          - i686-unknown-linux-musl
+          # - i586-unknown-linux-musl
+          # - i686-unknown-linux-musl
           # = note: /usr/local/bin/../lib/gcc/i586-linux-musl/9.2.0/../../../../i586-linux-musl/bin/ld: /target/i586-unknown-linux-musl/release/deps/libring-85b4fbaf5798ec9c.rlib(aes_nohw.o): in function `GFp_aes_nohw_ctr32_encrypt_blocks':
           #   /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/aes_nohw.c:961: undefined reference to `__stack_chk_fail_local'
           #   /usr/local/bin/../lib/gcc/i586-linux-musl/9.2.0/../../../../i586-linux-musl/bin/ld: /target/i586-unknown-linux-musl/release/deps/libring-85b4fbaf5798ec9c.rlib(poly1305.o): in function `poly1305_update':
