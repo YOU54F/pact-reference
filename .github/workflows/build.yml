@@ -1,6 +1,16 @@
 name: Pact-Rust Build
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/build.yml'
+  pull_request:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/build.yml'
 
 jobs:
   build:

@@ -1,7 +1,16 @@
 name: Pact-Rust FFI Build
 
-# on: [push, pull_request]
-on: [pull_request]
+on:
+  push:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/build-ffi.yml'
+  pull_request:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/build-ffi.yml'
 
 jobs:
   build:

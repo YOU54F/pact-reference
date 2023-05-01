@@ -14,7 +14,8 @@ BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
     cd rust/pact_ffi
     ./build-cross.sh
 
-cli_linux_arm64_task: 
+cli_linux_arm64_task:
+  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
   arm_container:
     image: rustlang/rust:nightly
     cpu: 4
@@ -26,6 +27,7 @@ cli_linux_arm64_task:
   << : *BUILD_CLI_TEST_TASK_TEMPLATE
 
 ffi_linux_arm64_task: 
+  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
   arm_container:
     image: rustlang/rust:nightly
     cpu: 4
@@ -37,20 +39,24 @@ ffi_linux_arm64_task:
   << : *BUILD_FFI_TASK_TEMPLATE
 
 cli_macos_arm64_task: 
+  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-base:latest
-  setup_script: brew install rust
+  setup_script: brew install rust rustup-init
   env:
     target: aarch64-apple-darwin
     PATH: "/Users/admin/.cargo/bin:$PATH"
   << : *BUILD_CLI_TEST_TASK_TEMPLATE
 
 ffi_macos_arm64_task: 
+  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-base:latest
-  setup_script: brew install rust
+  setup_script: |
+      brew install rust rustup-init
+      softwareupdate --install-rosetta --agree-to-license
   env:
-    target: aarch64-apple-darwin
+    # target: aarch64-apple-darwin
     PATH: "/Users/admin/.cargo/bin:$PATH"
   << : *BUILD_FFI_TASK_TEMPLATE
 

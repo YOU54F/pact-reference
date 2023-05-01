@@ -2,6 +2,15 @@ name: Cross Platform Builder - ffi / verifier_cli / mock_server_cli
 
 on:
   push:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/x-plat.yml'
+  pull_request:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/x-plat.yml'
   release:
     types: [published]
 
