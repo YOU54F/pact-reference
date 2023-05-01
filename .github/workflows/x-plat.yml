@@ -225,13 +225,13 @@ jobs:
           target: ${{ matrix.target }}
       - name: install binfmt
         run: docker run --privileged --rm tonistiigi/binfmt --install all
-        if: ${{ runner.os == 'Linux '}}
+        if: ${{ runner.os == 'Linux' }}
       - name: install musl tools
         run: |
           if [[ ${{ matrix.target }} == *"musl"* ]]; then
             sudo apt install musl-tools
           fi
-        if: ${{ runner.os == 'Linux '}}
+        if: ${{ runner.os == 'Linux' }}
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}

@@ -9,15 +9,24 @@
 #     cargo build --target ${BUILD_TARGET} --release
 #     ../target/${BUILD_TARGET}/release/pact_verifier_cli --help
 
+BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
+  build_ffi_script: |
+    cd rust/pact_ffi
+    ./build-cross.sh
+    ls ../target/${BUILD_TARGET}/artifacts
 
-# linux_arm64_task: 
-#   arm_container:
-#     image: rustlang/rust:nightly
-#     cpu: 4
-#     memory: 12G
-#   env:
-#     BUILD_TARGET: aarch64-unknown-linux-gnu
-#   << : *BUILD_TEST_TASK_TEMPLATE
+
+linux_arm64_task: 
+  container: # needs to be container when run with cirrus run
+  # arm_container:
+    image: rustlang/rust:nightly
+    cpu: 4
+    memory: 12G
+  env:
+    CIRRUS_CI: true
+    matrix:
+      - target: aarch64-unknown-linux-gnu
+  << : *BUILD_FFI_TASK_TEMPLATE
 
 # macosx_arm64_task: 
 #   macos_instance:
