@@ -1,17 +1,20 @@
 BUILD_CLI_TEST_TASK_TEMPLATE: &BUILD_CLI_TEST_TASK_TEMPLATE
   test_pact_mock_server_cli_script: |
     cd rust/pact_mock_server_cli
+    chmod +x ./build-cross.sh
     ./build-cross.sh
     ../target/${target}/release/pact_mock_server_cli --help
     rm -rf ../target/
   test_pact_verifier_cli_script: |
     cd rust/pact_verifier_cli
+    chmod +x ./build-cross.sh
     ./build-cross.sh
     ../target/${target}/release/pact_verifier_cli --help
 
 BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
   build_ffi_script: |
     cd rust/pact_ffi
+    chmod +x ./build-cross.sh
     ./build-cross.sh
 
 cli_linux_arm64_task:
@@ -42,7 +45,7 @@ cli_macos_arm64_task:
   skip: "!changesInclude('.cirrus.yml', 'rust/**')"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-base:latest
-  setup_script: brew install rust rustup-init
+  setup_script: brew install rustup && rustup-init -y
   env:
     target: aarch64-apple-darwin
     PATH: "/Users/admin/.cargo/bin:$PATH"
@@ -53,12 +56,9 @@ ffi_macos_arm64_task:
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-base:latest
   setup_script: |
-      brew install rust rustup-init
+      brew install rustup && rustup-init -y
       softwareupdate --install-rosetta --agree-to-license
   env:
     # target: aarch64-apple-darwin
     PATH: "/Users/admin/.cargo/bin:$PATH"
   << : *BUILD_FFI_TASK_TEMPLATE
-
-
-

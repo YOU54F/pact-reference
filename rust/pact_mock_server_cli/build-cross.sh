@@ -95,7 +95,7 @@ for target in "${targets[@]}"; do
     echo "ring override for aarch64-pc-windows-msvc"
     echo ring = { git = \"https://github.com/awakecoding/ring\", branch = \"0.16.20_alpha\" } >>../cargo.toml
     cd .. && cargo update
-    cd pact_ffi
+    cd $lib_name
   fi
 
   if [[ ($CI == "true" && $(uname -s) != "Linux") || $CIRRUS_CI = "true" ]]; then

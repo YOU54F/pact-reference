@@ -1,0 +1,52 @@
+name: test alpine cli
+
+on:
+  push:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/alpine_cli.yml'
+  pull_request:
+    paths:
+      - '!.cirrus.yml'
+      - 'rust/**'
+      - '.github/alpine_cli.yml'
+
+jobs:
+
+  setup_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      crate: ${{ steps.generate_matrix.outputs.crate }}
+    steps:
+      - name: Generate Matrix for testing
+        id: generate_matrix
+        run: |
+          if [[ ${{ github.ref }} == *"pact_verifier_cli"* ]]; then
+            crate_to_test=[\"pact_verifier_cli\"]
+          elif [[ ${{ github.ref }} == *"pact_mock_server_cli"* ]]; then
+            crate_to_test=[\"pact_mock_server_cli\"]
+          else
+            crate_to_test=[\"pact_verifier_cli\",\"pact_mock_server_cli\"]
+          fi
+          CRATE=$crate_to_test
+          echo "crate=${CRATE}" >> "$GITHUB_OUTPUT"
+      - run: echo "${{ toJson(steps.generate_matrix.outputs.crate) }}"
+        name: Testing ${{ toJson(steps.generate_matrix.outputs.crate) }}
+
+  cross:
+    runs-on: ${{ matrix.os }}
+    needs: setup_matrix
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Testing ${{ matrix.crate }}
+        run: ./test-alpine.sh
+        working-directory: rust/${{ matrix.crate }}

@@ -42,7 +42,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: setup_matrix
     defaults:
-      run:
+      run: 
         shell: bash
     strategy:
       fail-fast: false
@@ -79,7 +79,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
-        shell: bash
       - uses: dtolnay/rust-toolchain@stable
         continue-on-error: true
         with:
@@ -88,13 +87,11 @@ jobs:
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}
-        shell: bash
         env:
           target: ${{ matrix.target }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
-        shell: bash
       - name: Build the header file (required for the C FFI tests)
         if: runner.os == 'Linux' && matrix.crate == 'pact_ffi' && matrix.target == 'x86_64-unknown-linux-gnu'
         working-directory: rust/${{ matrix.crate }}
@@ -110,8 +107,8 @@ jobs:
           automake --add-missing
           ./configure
           make
-          src/consumer-verification basic ../../rust/target/debug/libpact_ffi.so
-          src/consumer-verification error ../../rust/target/debug/libpact_ffi.so
+          src/consumer-verification basic ../../rust/target/${{ matrix.target }}/release/libpact_ffi.so
+          src/consumer-verification error ../../rust/target/${{ matrix.target }}/release/libpact_ffi.so
       - name: Upload the artifacts
         uses: actions/upload-artifact@v3.1.2
         with:
@@ -130,7 +127,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: setup_matrix
     defaults:
-      run:
+      run: 
         shell: bash
     strategy:
       fail-fast: false
@@ -145,7 +142,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
-        shell: bash
       - uses: dtolnay/rust-toolchain@stable
         continue-on-error: true
         with:
@@ -154,13 +150,11 @@ jobs:
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}
-        shell: bash
         env:
           target: ${{ matrix.target }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
-        shell: bash
       - name: Upload the artifacts
         uses: actions/upload-artifact@v3.1.2
         with:
@@ -179,7 +173,7 @@ jobs:
     needs: setup_matrix
     runs-on: ${{ matrix.os }}
     defaults:
-      run:
+      run: 
         shell: bash
     strategy:
       fail-fast: false
@@ -195,7 +189,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
-        shell: bash
       - uses: dtolnay/rust-toolchain@stable
         continue-on-error: true
         with:
@@ -204,13 +197,11 @@ jobs:
       - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
         run: ./build-cross.sh
         working-directory: rust/${{ matrix.crate }}
-        shell: bash
         env:
           target: ${{ matrix.target }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
-        shell: bash
       - name: Upload the artifacts
         uses: actions/upload-artifact@v3.1.2
         with:
@@ -232,14 +223,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: rustc --version || true
-        shell: bash
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
       - name: Build headers with cargo pact_ffi
         run: ./build-headers.sh
         working-directory: rust/pact_ffi
-        shell: bash
       - name: Upload the artifacts
         uses: actions/upload-artifact@v3.1.2
         with:
