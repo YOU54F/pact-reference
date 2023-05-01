@@ -47,14 +47,14 @@ jobs:
 
           # 🚧 This did build with cross?! 
 
-          - i686-pc-windows-gnu
+          # - i686-pc-windows-gnu
           # ❌
 
           # ❌ These dont build with cross, or fall back to host and fail 
 
 
-          # - i586-unknown-linux-musl
-          # - i686-unknown-linux-musl
+          - i586-unknown-linux-musl
+          - i686-unknown-linux-musl
           # = note: /usr/local/bin/../lib/gcc/i586-linux-musl/9.2.0/../../../../i586-linux-musl/bin/ld: /target/i586-unknown-linux-musl/release/deps/libring-85b4fbaf5798ec9c.rlib(aes_nohw.o): in function `GFp_aes_nohw_ctr32_encrypt_blocks':
           #   /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ring-0.16.20/crypto/fipsmodule/aes/aes_nohw.c:961: undefined reference to `__stack_chk_fail_local'
           #   /usr/local/bin/../lib/gcc/i586-linux-musl/9.2.0/../../../../i586-linux-musl/bin/ld: /target/i586-unknown-linux-musl/release/deps/libring-85b4fbaf5798ec9c.rlib(poly1305.o): in function `poly1305_update':
@@ -258,64 +258,64 @@ jobs:
           file_glob: true
           tag: ${{ github.ref }}
 
-  windows:
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        crate: [pact_ffi]
-        target:
-          # - x86_64-pc-windows-msvc # ✅
-          # - aarch64-pc-windows-msvc # ✅
-          # - i686-pc-windows-msvc # ✅
-          # - x86_64-pc-windows-gnu # ✅
-          - i686-pc-windows-gnu # native with cargo error: linker `i686-w64-mingw32-gcc` not found
-          # - i586-pc-windows-msvc # Fails, could be possible. https://seri.tools/blog/compiling-rust-for-legacy-windows/
-          # - aarch64-pc-windows-gnullvm
-          # - aarch64-uwp-windows-msvc
-          # - i686-uwp-windows-gnu
-          # - i686-uwp-windows-msvc
-          # - thumbv7a-pc-windows-msvc
-          # - thumbv7a-uwp-windows-msvc
-          # - x86_64-pc-windows-gnullvm
-          # - x86_64-uwp-windows-gnu
-          # - x86_64-uwp-windows-msvc
-    steps:
-      - uses: actions/checkout@v3
-      - run: rustc --version || true
-        shell: bash
-      - uses: dtolnay/rust-toolchain@stable
-        continue-on-error: true
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-      - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
-        run: ./build-cross.sh
-        working-directory: rust/${{ matrix.crate }}
-        shell: bash
-        env:
-          target: ${{ matrix.target }}
-      - name: Show ${{ matrix.crate }} release
-        run: ls && ls ../../artifacts
-        working-directory: rust/target/${{ matrix.target }}/release
-        shell: bash
-      - name: Upload the artifacts
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: release-artifacts
-          path: rust/target/artifacts
-      - name: Upload Release Assets
-        if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli'))
-        uses: svenstaro/upload-release-action@2.5.0
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: rust/target/artifacts/*
-          file_glob: true
-          tag: ${{ github.ref }}
+  # windows:
+  #   runs-on: ${{ matrix.os }}
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows-latest]
+  #       crate: [pact_ffi]
+  #       target:
+  #         # - x86_64-pc-windows-msvc # ✅
+  #         # - aarch64-pc-windows-msvc # ✅
+  #         # - i686-pc-windows-msvc # ✅
+  #         # - x86_64-pc-windows-gnu # ✅
+  #         - i686-pc-windows-gnu # native with cargo error: linker `i686-w64-mingw32-gcc` not found
+  #         # - i586-pc-windows-msvc # Fails, could be possible. https://seri.tools/blog/compiling-rust-for-legacy-windows/
+  #         # - aarch64-pc-windows-gnullvm
+  #         # - aarch64-uwp-windows-msvc
+  #         # - i686-uwp-windows-gnu
+  #         # - i686-uwp-windows-msvc
+  #         # - thumbv7a-pc-windows-msvc
+  #         # - thumbv7a-uwp-windows-msvc
+  #         # - x86_64-pc-windows-gnullvm
+  #         # - x86_64-uwp-windows-gnu
+  #         # - x86_64-uwp-windows-msvc
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - run: rustc --version || true
+  #       shell: bash
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       continue-on-error: true
+  #       with:
+  #         toolchain: stable
+  #         target: ${{ matrix.target }}
+  #     - name: Build ${{ matrix.crate }} with cross for ${{ matrix.target }}
+  #       run: ./build-cross.sh
+  #       working-directory: rust/${{ matrix.crate }}
+  #       shell: bash
+  #       env:
+  #         target: ${{ matrix.target }}
+  #     - name: Show ${{ matrix.crate }} release
+  #       run: ls && ls ../../artifacts
+  #       working-directory: rust/target/${{ matrix.target }}/release
+  #       shell: bash
+  #     - name: Upload the artifacts
+  #       uses: actions/upload-artifact@v3.1.2
+  #       with:
+  #         name: release-artifacts
+  #         path: rust/target/artifacts
+  #     - name: Upload Release Assets
+  #       if: (startsWith(github.ref, 'refs/tags/libpact_ffi')  || startsWith(github.ref, 'refs/tags/pact_verifier_cli') || startsWith(github.ref, 'refs/tags/pact_mock_server_cli'))
+  #       uses: svenstaro/upload-release-action@2.5.0
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: rust/target/artifacts/*
+  #         file_glob: true
+  #         tag: ${{ github.ref }}
 
   # macos:
   #   runs-on: ${{ matrix.os }}
