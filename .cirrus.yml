@@ -59,6 +59,6 @@ ffi_macos_arm64_task:
       brew install rustup && rustup-init -y
       softwareupdate --install-rosetta --agree-to-license
   env:
-    # target: aarch64-apple-darwin
+    target: aarch64-apple-darwin
     PATH: "/Users/admin/.cargo/bin:$PATH"
   << : *BUILD_FFI_TASK_TEMPLATE
