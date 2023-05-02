@@ -25,7 +25,11 @@ jobs:
         crate: ["pact_verifier_cli","pact_mock_server_cli"]
     steps:
       - uses: actions/checkout@v3
-      - run: docker run --privileged --rm tonistiigi/binfmt --install all
+      - name: setup emulators and multi-arch builder
+        run: |
+          docker run --privileged --rm tonistiigi/binfmt --install all
+          docker buildx create --platform linux/arm64,linux/arm/v8,linux/amd64 --name multi_arch_builder
+          docker buildx use multi_arch_builder
       - name: Testing alpine releases for ${{ matrix.crate }}
         run: ./test-alpine-multi.sh
         working-directory: rust
