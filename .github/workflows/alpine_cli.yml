@@ -27,4 +27,4 @@ jobs:
       - uses: actions/checkout@v3
       - name: Testing alpine releases for ${{ matrix.crate }}
         run: ./test-alpine-multi.sh
-        working-directory: rust/${{ matrix.crate }}
+        working-directory: rust
