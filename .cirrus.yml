@@ -63,18 +63,7 @@ BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
 #     PATH: "/Users/admin/.cargo/bin:$PATH"
 #   << : *BUILD_FFI_TASK_TEMPLATE
 
-free_bsd_arm64_task:
-  compute_engine_instance:
-    image_project: freebsd-org-cloud-dev
-    image: family/freebsd-13-0
-    platform: freebsd
-    architecture: arm64
-  setup_script: |
-      uname -a
-      pkg install curl 
-      pkg install rust
-      rustc --version
-  << : *BUILD_FFI_TASK_TEMPLATE
+
 
 free_bsd_amd64_task:
   compute_engine_instance:
@@ -82,9 +71,13 @@ free_bsd_amd64_task:
     image: family/freebsd-13-0
     platform: freebsd
     architecture: amd64
+  env:
+    matrix:
+      - target: aarch64-unknown-freebsd
+      - target: x86_64-unknown-freebsd
   setup_script: |
       uname -a
-      pkg install curl 
-      pkg install rust
+      pkg install --yes curl 
+      pkg install --yes rust
       rustc --version
   << : *BUILD_FFI_TASK_TEMPLATE
