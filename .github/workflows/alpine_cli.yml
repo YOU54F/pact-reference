@@ -5,12 +5,12 @@ on:
     paths:
       - '!.cirrus.yml'
       - 'rust/**'
-      - '.github/alpine_cli.yml'
+      - '.github/workflows/alpine_cli.yml'
   pull_request:
     paths:
       - '!.cirrus.yml'
       - 'rust/**'
-      - '.github/alpine_cli.yml'
+      - '.github/workflows/alpine_cli.yml'
 
 jobs:
   cross:
