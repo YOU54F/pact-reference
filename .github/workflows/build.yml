@@ -5,12 +5,14 @@ on:
     paths:
       - '!.cirrus.yml'
       - 'rust/**'
-      - '.github/build.yml'
+      - '.github/workflows/build.yml'
+      - '!rust/test-alpine-multi.sh'
   pull_request:
     paths:
       - '!.cirrus.yml'
       - 'rust/**'
-      - '.github/build.yml'
+      - '.github/workflows/build.yml'
+      - '!rust/test-alpine-multi.sh'
 
 jobs:
   build:

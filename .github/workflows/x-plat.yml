@@ -5,12 +5,14 @@ on:
     paths:
       - '!.cirrus.yml'
       - 'rust/**'
-      - '.github/x-plat.yml'
+      - '.github/workflows/x-plat.yml'
+      - '!rust/test-alpine-multi.sh'
   pull_request:
     paths:
       - '!.cirrus.yml'
       - 'rust/**'
-      - '.github/x-plat.yml'
+      - '.github/workflows/x-plat.yml'
+      - '!rust/test-alpine-multi.sh'
   release:
     types: [published]
 

@@ -55,8 +55,8 @@ for version in "${versions[@]}"; do
     else
         echo -e "${GREEN} no local build command, pulling ${image} from Dockerhub${NC}"
     fi
-    docker run --rm -it --init "${image}" --version
-    docker run --rm -it --init "${image}" --help
+    docker run --rm "${image}" --version
+    docker run --rm "${image}" --help
     if [[ $tool == 'pact_mock_server_cli' ]]; then
         docker run --rm --init "${image}" start &
         PID=$!
