@@ -28,3 +28,10 @@ jobs:
       - name: Testing alpine releases for ${{ matrix.crate }}
         run: ./test-alpine-multi.sh
         working-directory: rust
+        env:
+          LOAD: true
+      - name: Building alpine releases for ${{ matrix.crate }}
+        run: ./test-alpine-multi.sh
+        working-directory: rust
+        env:
+          BUILD_MULTI: true
