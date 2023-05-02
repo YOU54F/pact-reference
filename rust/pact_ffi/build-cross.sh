@@ -105,9 +105,12 @@ for target in "${targets[@]}"; do
     # no docker on github actions macos / windows
     # no docker in docker in cirrus
     echo "building for $target with cargo"
+    rustup target add $target
     cargo build --target "${target}" --release
   else
     echo "building for $target with cross"
+    ## try and add the target incase cross falls back to host
+    rustup target add $target || true 
     cross build --target "${target}" --release
   fi
 
