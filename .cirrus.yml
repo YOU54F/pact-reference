@@ -71,7 +71,8 @@ free_bsd_arm64_task:
     architecture: arm64
   setup_script: |
       uname -a
-      pkg curl rust
+      pkg install curl 
+      pkg install rust
       rustc --version
   << : *BUILD_FFI_TASK_TEMPLATE
 
@@ -83,6 +84,7 @@ free_bsd_amd64_task:
     architecture: amd64
   setup_script: |
       uname -a
-      pkg curl rust
+      pkg install curl 
+      pkg install rust
       rustc --version
   << : *BUILD_FFI_TASK_TEMPLATE
