@@ -17,48 +17,72 @@ BUILD_FFI_TASK_TEMPLATE: &BUILD_FFI_TASK_TEMPLATE
     chmod +x ./build-cross.sh
     ./build-cross.sh
 
-cli_linux_arm64_task:
-  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
-  arm_container:
-    image: rustlang/rust:nightly
-    cpu: 4
-    memory: 12G
-  env:
-    CIRRUS_CI: true
-    matrix:
-      - target: aarch64-unknown-linux-gnu
-  << : *BUILD_CLI_TEST_TASK_TEMPLATE
+# cli_linux_arm64_task:
+#   skip: "!changesInclude('.cirrus.yml', 'rust/**')"
+#   arm_container:
+#     image: rustlang/rust:nightly
+#     cpu: 4
+#     memory: 12G
+#   env:
+#     CIRRUS_CI: true
+#     matrix:
+#       - target: aarch64-unknown-linux-gnu
+#   << : *BUILD_CLI_TEST_TASK_TEMPLATE
 
-ffi_linux_arm64_task: 
-  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
-  arm_container:
-    image: rustlang/rust:nightly
-    cpu: 4
-    memory: 12G
-  env:
-    CIRRUS_CI: true
-    matrix:
-      - target: aarch64-unknown-linux-gnu
+# ffi_linux_arm64_task: 
+#   skip: "!changesInclude('.cirrus.yml', 'rust/**')"
+#   arm_container:
+#     image: rustlang/rust:nightly
+#     cpu: 4
+#     memory: 12G
+#   env:
+#     CIRRUS_CI: true
+#     matrix:
+#       - target: aarch64-unknown-linux-gnu
+#   << : *BUILD_FFI_TASK_TEMPLATE
+
+# cli_macos_arm64_task: 
+#   skip: "!changesInclude('.cirrus.yml', 'rust/**')"
+#   macos_instance:
+#     image: ghcr.io/cirruslabs/macos-ventura-base:latest
+#   setup_script: brew install rustup && rustup-init -y
+#   env:
+#     target: aarch64-apple-darwin
+#     PATH: "/Users/admin/.cargo/bin:$PATH"
+#   << : *BUILD_CLI_TEST_TASK_TEMPLATE
+
+# ffi_macos_arm64_task: 
+#   skip: "!changesInclude('.cirrus.yml', 'rust/**')"
+#   macos_instance:
+#     image: ghcr.io/cirruslabs/macos-ventura-base:latest
+#   setup_script: |
+#       brew install rustup && rustup-init -y
+#       softwareupdate --install-rosetta --agree-to-license
+#   env:
+#     target: aarch64-apple-darwin
+#     PATH: "/Users/admin/.cargo/bin:$PATH"
+#   << : *BUILD_FFI_TASK_TEMPLATE
+
+free_bsd_arm64_task:
+  compute_engine_instance:
+    image_project: freebsd-org-cloud-dev
+    image: family/freebsd-13-0
+    platform: freebsd
+    architecture: arm64
+  setup_script: |
+      uname -a
+      pkg curl rust
+      rustc --version
   << : *BUILD_FFI_TASK_TEMPLATE
 
-cli_macos_arm64_task: 
-  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-ventura-base:latest
-  setup_script: brew install rustup && rustup-init -y
-  env:
-    target: aarch64-apple-darwin
-    PATH: "/Users/admin/.cargo/bin:$PATH"
-  << : *BUILD_CLI_TEST_TASK_TEMPLATE
-
-ffi_macos_arm64_task: 
-  skip: "!changesInclude('.cirrus.yml', 'rust/**')"
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-ventura-base:latest
+free_bsd_amd64_task:
+  compute_engine_instance:
+    image_project: freebsd-org-cloud-dev
+    image: family/freebsd-13-0
+    platform: freebsd
+    architecture: amd64
   setup_script: |
-      brew install rustup && rustup-init -y
-      softwareupdate --install-rosetta --agree-to-license
-  env:
-    target: aarch64-apple-darwin
-    PATH: "/Users/admin/.cargo/bin:$PATH"
+      uname -a
+      pkg curl rust
+      rustc --version
   << : *BUILD_FFI_TASK_TEMPLATE
