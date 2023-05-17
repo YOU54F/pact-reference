@@ -4,6 +4,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::panic::RefUnwindSafe;
 use std::sync::{Arc, Mutex};
 
 use anyhow::anyhow;
@@ -136,15 +137,18 @@ impl V4Interaction for SynchronousHttp {
   fn to_json(&self) -> Value {
     let mut json = json!({
       "type": V4InteractionType::Synchronous_HTTP.to_string(),
-      "key": self.key.clone().unwrap_or_else(|| self.calc_hash()),
       "description": self.description.clone(),
       "request": self.request.to_json(),
       "response": self.response.to_json(),
       "pending": self.pending
     });
+    let map = json.as_object_mut().unwrap();
+
+    if let Some(key) = &self.key {
+      map.insert("key".to_string(), Value::String(key.clone()));
+    }
 
     if !self.provider_states.is_empty() {
-      let map = json.as_object_mut().unwrap();
       map.insert("providerStates".to_string(), Value::Array(
         self.provider_states.iter().map(|p| p.to_json()).collect()));
     }
@@ -154,12 +158,10 @@ impl V4Interaction for SynchronousHttp {
       .map(|(k, v)| (k.clone(), v.clone()))
       .collect();
     if !comments.is_empty() {
-      let map = json.as_object_mut().unwrap();
       map.insert("comments".to_string(), Value::Object(comments));
     }
 
     if !self.plugin_config.is_empty() {
-      let map = json.as_object_mut().unwrap();
       map.insert("pluginConfiguration".to_string(), self.plugin_config.iter()
         .map(|(k, v)|
           (k.clone(), Value::Object(v.iter().map(|(k, v)| (k.clone(), v.clone())).collect()))
@@ -167,19 +169,17 @@ impl V4Interaction for SynchronousHttp {
     }
 
     if !self.interaction_markup.is_empty() {
-      let map = json.as_object_mut().unwrap();
       map.insert("interactionMarkup".to_string(), self.interaction_markup.to_json());
     }
 
     if let Some(transport) = &self.transport {
-      let map = json.as_object_mut().unwrap();
       map.insert("transport".to_string(), Value::String(transport.clone()));
     }
 
     json
   }
 
-  fn to_super(&self) -> &(dyn Interaction + Send + Sync) {
+  fn to_super(&self) -> &(dyn Interaction + Send + Sync + RefUnwindSafe) {
     self
   }
 
@@ -191,7 +191,7 @@ impl V4Interaction for SynchronousHttp {
     self.key.clone()
   }
 
-  fn boxed_v4(&self) -> Box<dyn V4Interaction + Send + Sync> {
+  fn boxed_v4(&self) -> Box<dyn V4Interaction + Send + Sync + RefUnwindSafe> {
     Box::new(self.clone())
   }
 
@@ -231,7 +231,7 @@ impl V4Interaction for SynchronousHttp {
     self.transport = transport.clone();
   }
 
-  fn with_unique_key(&self) -> Box<dyn V4Interaction + Send + Sync> {
+  fn with_unique_key(&self) -> Box<dyn V4Interaction + Send + Sync + RefUnwindSafe> {
     Box::new(self.with_key())
   }
 
@@ -310,7 +310,7 @@ impl Interaction for SynchronousHttp {
     true
   }
 
-  fn as_v4(&self) -> Option<Box<dyn V4Interaction + Send + Sync>> {
+  fn as_v4(&self) -> Option<Box<dyn V4Interaction + Send + Sync + RefUnwindSafe>> {
     Some(self.boxed_v4())
   }
 
@@ -346,15 +346,15 @@ impl Interaction for SynchronousHttp {
     None
   }
 
-  fn boxed(&self) -> Box<dyn Interaction + Send + Sync> {
+  fn boxed(&self) -> Box<dyn Interaction + Send + Sync + RefUnwindSafe> {
     Box::new(self.clone())
   }
 
-  fn arced(&self) -> Arc<dyn Interaction + Send + Sync> {
+  fn arced(&self) -> Arc<dyn Interaction + Send + Sync + RefUnwindSafe> {
     Arc::new(self.clone())
   }
 
-  fn thread_safe(&self) -> Arc<Mutex<dyn Interaction + Send + Sync>> {
+  fn thread_safe(&self) -> Arc<Mutex<dyn Interaction + Send + Sync + RefUnwindSafe>> {
     Arc::new(Mutex::new(self.clone()))
   }
 

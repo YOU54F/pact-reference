@@ -2,6 +2,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::panic::RefUnwindSafe;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
@@ -33,7 +34,7 @@ pub struct V4Pact {
   /// Provider side of the pact
   pub provider: Provider,
   /// List of messages between the consumer and provider.
-  pub interactions: Vec<Box<dyn V4Interaction + Send + Sync>>,
+  pub interactions: Vec<Box<dyn V4Interaction + Send + Sync + RefUnwindSafe>>,
   /// Metadata associated with this pact.
   pub metadata: BTreeMap<String, Value>,
   /// Plugin data associated with this pact
@@ -87,7 +88,7 @@ impl V4Pact {
   }
 
   /// Returns all the interactions of the given type
-  pub fn filter_interactions(&self, interaction_type: V4InteractionType) -> Vec<Box<dyn Interaction + Send + Sync>> {
+  pub fn filter_interactions(&self, interaction_type: V4InteractionType) -> Vec<Box<dyn Interaction + Send + Sync + RefUnwindSafe>> {
     self.interactions.iter()
       .filter(|i| i.v4_type() == interaction_type)
       .map(|i| i.boxed())
@@ -129,7 +130,7 @@ impl V4Pact {
   }
 
   /// Find the interaction with the given ID
-  pub fn find_interaction_with_id(&self, interaction_id: &str) -> Option<&Box<dyn V4Interaction + Send + Sync>> {
+  pub fn find_interaction_with_id(&self, interaction_id: &str) -> Option<&Box<dyn V4Interaction + Send + Sync + RefUnwindSafe>> {
     self.interactions.iter()
       .find(|i| if let Some(id) = i.id() {
           id == interaction_id
@@ -173,7 +174,7 @@ impl Pact for V4Pact {
     self.provider.clone()
   }
 
-  fn interactions(&self) -> Vec<Box<dyn Interaction + Send + Sync>> {
+  fn interactions(&self) -> Vec<Box<dyn Interaction + Send + Sync + RefUnwindSafe>> {
     self.interactions.iter().map(|i| i.boxed()).collect()
   }
 
@@ -271,15 +272,15 @@ impl Pact for V4Pact {
     PactSpecification::V4
   }
 
-  fn boxed(&self) -> Box<dyn Pact + Send + Sync> {
+  fn boxed(&self) -> Box<dyn Pact + Send + Sync + RefUnwindSafe> {
     Box::new(self.clone())
   }
 
-  fn arced(&self) -> Arc<dyn Pact + Send + Sync> {
+  fn arced(&self) -> Arc<dyn Pact + Send + Sync + RefUnwindSafe> {
     Arc::new(self.clone())
   }
 
-  fn thread_safe(&self) -> Arc<Mutex<dyn Pact + Send + Sync>> {
+  fn thread_safe(&self) -> Arc<Mutex<dyn Pact + Send + Sync + RefUnwindSafe>> {
     Arc::new(Mutex::new(self.clone()))
   }
 
@@ -354,7 +355,7 @@ impl ReadWritePact for V4Pact {
     Self::pact_from_json(&json, &*path.to_string_lossy())
   }
 
-  fn merge(&self, other: &dyn Pact) -> anyhow::Result<Box<dyn Pact + Send + Sync>> {
+  fn merge(&self, other: &dyn Pact) -> anyhow::Result<Box<dyn Pact + Send + Sync + RefUnwindSafe>> {
     if self.consumer.name == other.consumer().name && self.provider.name == other.provider().name {
       let mut new_pact = V4Pact {
         consumer: self.consumer.clone(),
@@ -428,7 +429,7 @@ impl PactJsonVerifier for V4Pact {
 }
 
 /// Creates a V4 Pact from the provided JSON struct
-pub fn from_json(source: &str, pact_json: &Value) -> anyhow::Result<Box<dyn Pact + Send + Sync>> {
+pub fn from_json(source: &str, pact_json: &Value) -> anyhow::Result<Box<dyn Pact + Send + Sync + RefUnwindSafe>> {
   trace!("from_json: Loading a V4 pact from JSON");
   let mut metadata = meta_data_from_json(pact_json);
 
@@ -671,7 +672,6 @@ mod tests {
   "interactions": [
     {{
       "description": "Test Interaction",
-      "key": "296966511eff169a",
       "pending": false,
       "providerStates": [
         {{
@@ -737,7 +737,6 @@ mod tests {
   "interactions": [
     {{
       "description": "Test Interaction",
-      "key": "caf215f068a58bc3",
       "pending": false,
       "providerStates": [
         {{
@@ -825,7 +824,6 @@ mod tests {
   "interactions": [
     {{
       "description": "Test Interaction",
-      "key": "296966511eff169a",
       "pending": false,
       "providerStates": [
         {{
@@ -843,7 +841,6 @@ mod tests {
     }},
     {{
       "description": "Test Interaction 2",
-      "key": "d3e13a43bc0744ac",
       "pending": false,
       "providerStates": [
         {{
@@ -1439,7 +1436,6 @@ mod tests {
         ]
       }},
       "description": "Test Interaction",
-      "key": "7e202f73d7d6d607",
       "pending": false,
       "request": {{
         "method": "GET",

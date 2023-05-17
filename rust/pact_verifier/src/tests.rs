@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::env;
-use std::panic::catch_unwind;
+use std::panic::{catch_unwind, RefUnwindSafe};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -119,7 +119,7 @@ fn if_a_consumer_filter_is_defined_returns_false_if_the_consumer_name_does_not_m
   let result = Ok((
     Box::new(RequestResponsePact {
       consumer: Consumer { name: "bob".to_string() }, .. RequestResponsePact::default()
-    }) as Box<dyn Pact + Send + Sync>,
+    }) as Box<dyn Pact + Send + Sync + RefUnwindSafe>,
     None,
     PactSource::Unknown,
     Duration::default()
@@ -140,7 +140,7 @@ fn if_a_consumer_filter_is_defined_returns_true_if_the_consumer_name_does_match(
   let result = Ok((
     Box::new(RequestResponsePact {
       consumer: Consumer { name: "bob".to_string() }, .. RequestResponsePact::default()
-    }) as Box<dyn Pact + Send + Sync>,
+    }) as Box<dyn Pact + Send + Sync + RefUnwindSafe>,
     None,
     PactSource::Unknown,
     Duration::default()
@@ -700,7 +700,7 @@ async fn when_no_pacts_is_error_is_false_should_not_generate_error() {
 }
 
 #[test_log::test(tokio::test)]
-async fn when_no_pacts_is_error_is_false_should_generate_error_if_it_is_other_error() {
+async fn when_no_pacts_is_error_is_false_should_not_generate_error_if_it_is_404_error() {
   let server = PactBuilderAsync::new("RustPactVerifier", "PactBrokerError")
     .interaction("a request to the pact broker root", "", |mut i| async move {
       i.request
@@ -787,8 +787,8 @@ async fn when_no_pacts_is_error_is_false_should_generate_error_if_it_is_other_er
   ).await;
 
   let execution_result = result.unwrap();
-  expect(execution_result.result).to(be_false());
-  expect(execution_result.errors.iter()).to_not(be_empty());
+  expect(execution_result.result).to(be_true());
+  expect(execution_result.errors.iter()).to(be_empty());
 }
 
 #[test_log::test(tokio::test)]
@@ -983,7 +983,10 @@ async fn test_publish_results_from_url_source_with_provider_branch() {
         i.request.path("/pacticipants/Pact%20Broker/branches/feat%2F1234/versions/1.2.3");
         i.request.json_body(json!({}));
 
-        i.response.status(200);
+        i.response
+          .header("content-type", "application/json")
+          .json_body("{}")
+          .status(200);
         i
       })
       .await
@@ -997,7 +1000,10 @@ async fn test_publish_results_from_url_source_with_provider_branch() {
           "verifiedBy": { "implementation": "Pact-Rust", "version": like!("0.4.5") }
         }));
 
-        i.response.status(200);
+        i.response
+          .status(200)
+          .header("content-type", "application/json")
+          .json_body("{}");
         i
       })
       .await

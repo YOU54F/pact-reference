@@ -2,14 +2,17 @@
 
 use std::collections::HashMap;
 use std::ops::Not;
-use anyhow::anyhow;
+use std::panic::RefUnwindSafe;
+use std::str::from_utf8;
 
+use anyhow::anyhow;
 use futures::stream::*;
 use itertools::Itertools;
-use maplit::*;
-use pact_models::http_utils::HttpAuth;
-use pact_models::pact::{load_pact_from_json, Pact};
+use maplit::hashmap;
 use pact_models::{http_utils, PACT_RUST_VERSION};
+use pact_models::http_utils::HttpAuth;
+use pact_models::json_utils::json_to_string;
+use pact_models::pact::{load_pact_from_json, Pact};
 use regex::{Captures, Regex};
 use reqwest::{Method, Url};
 use serde::{Deserialize, Serialize};
@@ -22,7 +25,7 @@ use pact_matching::Mismatch;
 use crate::MismatchResult;
 use crate::utils::with_retries;
 
-fn is_true(object: &serde_json::Map<String, serde_json::Value>, field: &str) -> bool {
+fn is_true(object: &serde_json::Map<String, Value>, field: &str) -> bool {
     match object.get(field) {
         Some(json) => match *json {
             serde_json::Value::Bool(b) => b,
@@ -32,7 +35,7 @@ fn is_true(object: &serde_json::Map<String, serde_json::Value>, field: &str) -> 
     }
 }
 
-fn as_string(json: &serde_json::Value) -> String {
+fn as_string(json: &Value) -> String {
     match *json {
         serde_json::Value::String(ref s) => s.clone(),
         _ => format!("{}", json)
@@ -59,7 +62,7 @@ fn json_content_type(response: &reqwest::Response) -> bool {
     }
 }
 
-fn find_entry(map: &serde_json::Map<String, serde_json::Value>, key: &str) -> Option<(String, serde_json::Value)> {
+fn find_entry(map: &serde_json::Map<String, Value>, key: &str) -> Option<(String, Value)> {
     match map.keys().find(|k| k.to_lowercase() == key.to_lowercase() ) {
         Some(k) => map.get(k).map(|v| (key.to_string(), v.clone()) ),
         None => None
@@ -83,30 +86,36 @@ pub enum PactBrokerError {
   NotFound(String),
   /// Invalid URL
   #[error("Invalid URL - {0}")]
-  UrlError(String)
+  UrlError(String),
+  /// Validation error
+  #[error("failed validation - {0:?}")]
+  ValidationError(Vec<String>)
 }
 
 impl PartialEq<String> for PactBrokerError {
     fn eq(&self, other: &String) -> bool {
-        let message = match self {
-            PactBrokerError::LinkError(s) => s,
-            PactBrokerError::ContentError(s) => s,
-            PactBrokerError::IoError(s) => s,
-            PactBrokerError::NotFound(s) => s,
-            PactBrokerError::UrlError(s) => s
+        let mut buffer = String::new();
+        match self {
+            PactBrokerError::LinkError(s) => buffer.push_str(s),
+            PactBrokerError::ContentError(s) => buffer.push_str(s),
+            PactBrokerError::IoError(s) => buffer.push_str(s),
+            PactBrokerError::NotFound(s) => buffer.push_str(s),
+            PactBrokerError::UrlError(s) => buffer.push_str(s),
+            PactBrokerError::ValidationError(errors) => buffer.push_str(errors.iter().join(", ").as_str())
         };
-        *message == *other
+        buffer == *other
     }
 }
 
 impl <'a> PartialEq<&'a str> for PactBrokerError {
     fn eq(&self, other: &&str) -> bool {
-        let message = match *self {
-            PactBrokerError::LinkError(ref s) => s.clone(),
-            PactBrokerError::ContentError(ref s) => s.clone(),
-            PactBrokerError::IoError(ref s) => s.clone(),
-            PactBrokerError::NotFound(ref s) => s.clone(),
-            PactBrokerError::UrlError(ref s) => s.clone()
+        let message = match self {
+            PactBrokerError::LinkError(s) => s.clone(),
+            PactBrokerError::ContentError(s) => s.clone(),
+            PactBrokerError::IoError(s) => s.clone(),
+            PactBrokerError::NotFound(s) => s.clone(),
+            PactBrokerError::UrlError(s) => s.clone(),
+            PactBrokerError::ValidationError(errors) => errors.iter().join(", ")
         };
         message.as_str() == *other
     }
@@ -184,7 +193,7 @@ impl Default for Link {
 pub struct HALClient {
   client: reqwest::Client,
   url: String,
-  path_info: Option<serde_json::Value>,
+  path_info: Option<Value>,
   auth: Option<HttpAuth>,
   retries: u8
 }
@@ -319,43 +328,63 @@ impl HALClient {
         &self,
         path: String,
         response: reqwest::Response,
-    ) -> Result<serde_json::Value, PactBrokerError> {
-        let is_json_content_type = json_content_type(&response);
-        let content_type = content_type(&response);
+    ) -> Result<Value, PactBrokerError> {
+      let is_json_content_type = json_content_type(&response);
+      let content_type = content_type(&response);
+      let status_code = response.status();
 
-        if response.status().is_success() {
-            let body = response.bytes()
-                .await
-                .map_err(|_| PactBrokerError::IoError(
-                    format!("Failed to download response body for path '{}'. URL: '{}'", &path, self.url)
-                ))?;
-
-            if is_json_content_type {
-                serde_json::from_slice(&body)
-                    .map_err(|err| PactBrokerError::ContentError(
-                        format!("Did not get a valid HAL response body from pact broker path '{}' - {}. URL: '{}'",
-                            path, err, self.url)
-                    ))
-            } else {
-                Err(PactBrokerError::ContentError(
-                    format!("Did not get a HAL response from pact broker path '{}', content type is '{}'. URL: '{}'",
-                        path, content_type, self.url
-                    )
-                ))
-            }
-        } else if response.status() == reqwest::StatusCode::NOT_FOUND {
-            Err(PactBrokerError::NotFound(
-                format!("Request to pact broker path '{}' failed: {}. URL: '{}'", path,
-                    response.status(), self.url
-                )
+      if status_code.is_success() {
+        if is_json_content_type {
+          response.json::<Value>()
+            .await
+            .map_err(|err| PactBrokerError::ContentError(
+              format!("Did not get a valid HAL response body from pact broker path '{}' - {}. URL: '{}'",
+                      path, err, self.url)
             ))
         } else {
-            Err(PactBrokerError::IoError(
-                format!("Request to pact broker path '{}' failed: {}. URL: '{}'", path,
-                    response.status(), self.url
-                )
-            ))
+          debug!("Request from broker was a success, but the response body was not JSON");
+          Err(PactBrokerError::ContentError(
+            format!("Did not get a valid HAL response body from pact broker path '{}', content type is '{}'. URL: '{}'",
+              path, content_type, self.url)
+          ))
         }
+      } else if status_code.as_u16() == 404 {
+          Err(PactBrokerError::NotFound(
+              format!("Request to pact broker path '{}' failed: {}. URL: '{}'", path,
+                      status_code, self.url
+              )
+          ))
+      } else if status_code.as_u16() == 400 {
+        let body = response.bytes()
+          .await
+          .map_err(|_| PactBrokerError::IoError(
+            format!("Failed to download response body for path '{}'. URL: '{}'", &path, self.url)
+          ))?;
+
+        if is_json_content_type {
+          let errors = serde_json::from_slice(&body)
+            .map_err(|err| PactBrokerError::ContentError(
+              format!("Did not get a valid HAL response body from pact broker path '{}' - {}. URL: '{}'",
+                      path, err, self.url)
+            ))?;
+          Err(handle_validation_errors(errors))
+        } else {
+          let body = from_utf8(&body)
+            .map(|b| b.to_string())
+            .unwrap_or_else(|err| format!("could not read body: {}", err));
+          error!("Request to pact broker path '{}' failed: {}", path, body);
+          Err(PactBrokerError::IoError(
+            format!("Request to pact broker path '{}' failed: {}. URL: '{}'", path,
+                    status_code, self.url
+            )
+          ))
+        }
+      } else {
+        Err(PactBrokerError::IoError(
+          format!("Request to pact broker path '{}' failed: {}. URL: '{}'", path,
+            status_code, self.url)
+        ))
+      }
     }
 
     fn parse_link_url(&self, link: &Link, values: &HashMap<String, String>) -> Result<String, PactBrokerError> {
@@ -447,23 +476,13 @@ impl HALClient {
       .header("Accept", "application/json")
       .body(body.to_string());
 
-    let response = with_retries(self.retries, request_builder)
-      .await
-      .map_err(|err| PactBrokerError::IoError(
-        format!("Failed to send JSON to the pact broker URL '{}' - {}", url, err)
-      ))?
-      .error_for_status()
-      .map_err(|err| PactBrokerError::ContentError(
-        format!("Request to pact broker URL '{}' failed - {}",  url, err)
-      ));
-
-      match response {
-        Ok(res) => {
-          let res = self.parse_broker_response(url.path().to_string(), res).await;
-          Ok(res.unwrap_or_default())
-        },
-        Err(err) => Err(err)
-      }
+    let response = with_retries(self.retries, request_builder).await;
+    match response {
+      Ok(res) => self.parse_broker_response(url.path().to_string(), res).await,
+      Err(err) => Err(PactBrokerError::IoError(
+        format!("Failed to send JSON to the pact broker URL '{}' - IoError {}", url, err)
+      ))
+    }
   }
 
   fn with_doc_context(self, doc_attributes: &[Link]) -> Result<HALClient, PactBrokerError> {
@@ -473,6 +492,32 @@ impl HALClient {
       "_links": json!(links)
     });
     Ok(self.update_path_info(links_json))
+  }
+}
+
+fn handle_validation_errors(body: Value) -> PactBrokerError {
+  match &body {
+    Value::Object(attrs) => if let Some(errors) = attrs.get("errors") {
+      match errors {
+        Value::Array(values) => PactBrokerError::ValidationError(values.iter().map(|v| json_to_string(v)).collect()),
+        Value::Object(errors) => PactBrokerError::ValidationError(
+          errors.iter().map(|(field, errors)| {
+            match errors {
+              Value::String(error) => format!("{}: {}", field, error),
+              Value::Array(errors) => format!("{}: {}", field, errors.iter().map(|err| json_to_string(err)).join(", ")),
+              _ => format!("{}: {}", field, errors),
+            }
+          })
+          .collect()
+        ),
+        Value::String(s) => PactBrokerError::ValidationError(vec![s.clone()]),
+        _ => PactBrokerError::ValidationError(vec![errors.to_string()])
+      }
+    } else {
+      PactBrokerError::ValidationError(vec![body.to_string()])
+    },
+    Value::String(s) => PactBrokerError::ValidationError(vec![s.clone()]),
+    _ => PactBrokerError::ValidationError(vec![body.to_string()])
   }
 }
 
@@ -511,7 +556,7 @@ pub async fn fetch_pacts_from_broker(
   broker_url: &str,
   provider_name: &str,
   auth: Option<HttpAuth>
-) -> anyhow::Result<Vec<anyhow::Result<(Box<dyn Pact + Send + Sync>, Option<PactVerificationContext>, Vec<Link>)>>> {
+) -> anyhow::Result<Vec<anyhow::Result<(Box<dyn Pact + Send + Sync + RefUnwindSafe>, Option<PactVerificationContext>, Vec<Link>)>>> {
   trace!("fetch_pacts_from_broker(broker_url='{}', provider_name='{}', auth={})", broker_url,
     provider_name, auth.clone().unwrap_or_default());
 
@@ -582,7 +627,7 @@ pub async fn fetch_pacts_dynamically_from_broker(
   provider_branch: Option<String>,
   consumer_version_selectors: Vec<ConsumerVersionSelector>,
   auth: Option<HttpAuth>
-) -> anyhow::Result<Vec<Result<(Box<dyn Pact + Send + Sync>, Option<PactVerificationContext>, Vec<Link>), PactBrokerError>>> {
+) -> anyhow::Result<Vec<Result<(Box<dyn Pact + Send + Sync + RefUnwindSafe>, Option<PactVerificationContext>, Vec<Link>), PactBrokerError>>> {
   trace!("fetch_pacts_dynamically_from_broker(broker_url='{}', provider_name='{}', pending={}, \
     include_wip_pacts_since={:?}, provider_tags: {:?}, consumer_version_selectors: {:?}, auth={})",
     broker_url, provider_name, pending, include_wip_pacts_since, provider_tags,
@@ -620,7 +665,7 @@ pub async fn fetch_pacts_dynamically_from_broker(
         match hal_client.clone().post_json(link.as_str(), request_body.as_str()).await {
           Ok(res) => Some(res),
           Err(err) => {
-            debug!("error Response for pacts for verification {:?} ", err);
+            info!("error response for pacts for verification: {} ", err);
             return Err(anyhow!(err))
           }
         }
@@ -708,7 +753,7 @@ pub async fn fetch_pacts_dynamically_from_broker(
 /// Fetch the Pact from the given URL, using any required authentication. This will use a GET
 /// request to the given URL and parse the result into a Pact model. It will also look for any HAL
 /// links in the response, returning those if found.
-pub async fn fetch_pact_from_url(url: &str, auth: &Option<HttpAuth>) -> anyhow::Result<(Box<dyn Pact + Send + Sync>, Vec<Link>)> {
+pub async fn fetch_pact_from_url(url: &str, auth: &Option<HttpAuth>) -> anyhow::Result<(Box<dyn Pact + Send + Sync + RefUnwindSafe>, Vec<Link>)> {
   let url = url.to_string();
   let auth = auth.clone();
   let (url, pact_json) = tokio::task::spawn_blocking(move || {
@@ -1073,8 +1118,8 @@ mod tests {
 
     let client = HALClient::with_url(pact_broker.url().as_str(), None);
     let result = client.fetch("/nonjson").await;
-    expect!(result).to(be_err().value(format!("Did not get a HAL response from pact broker path \'/nonjson\', content type is 'text/html'. URL: '{}'",
-      pact_broker.url())));
+    pretty_assertions::assert_eq!(format!("Error with the content of a HAL resource - Did not get a valid HAL response body from pact broker path \'/nonjson\', content type is 'text/html'. URL: '{}'",
+        pact_broker.url()), result.unwrap_err().to_string());
   }
 
     #[test]
@@ -1153,12 +1198,14 @@ mod tests {
 
         let client = HALClient::with_url(pact_broker.url().as_str(), None);
         let result = client.clone().fetch("/nonhal").await;
-        expect!(result).to(be_err().value(format!("Did not get a valid HAL response body from pact broker path \'/nonhal\' - EOF while parsing a value at line 1 column 0. URL: '{}'",
-            pact_broker.url())));
+        pretty_assertions::assert_eq!(
+          format!("Error with the content of a HAL resource - Did not get a valid HAL response body from pact broker path \'/nonhal\' - error decoding response body: EOF while parsing a value at line 1 column 0. URL: '{}'",
+            pact_broker.url()), result.unwrap_err().to_string());
 
         let result = client.clone().fetch("/nonhal2").await;
-        expect!(result).to(be_err().value(format!("Did not get a valid HAL response body from pact broker path \'/nonhal2\' - expected value at line 1 column 1. URL: '{}'",
-            pact_broker.url())));
+        pretty_assertions::assert_eq!(
+          format!("Error with the content of a HAL resource - Did not get a valid HAL response body from pact broker path \'/nonhal2\' - error decoding response body: expected value at line 1 column 1. URL: '{}'",
+            pact_broker.url()), result.unwrap_err().to_string());
     }
 
   #[test_log::test(tokio::test)]
@@ -1820,6 +1867,7 @@ mod tests {
             "providerVersionBranch": like!("main")
           }));
         i.response
+          .header("Content-Type", "application/json")
           .json_body(json_pattern!({
               "_embedded": {
                 "pacts": []
@@ -1851,6 +1899,110 @@ mod tests {
       Err(err) => {
         println!("err: {}", err);
         expect!(err.to_string().starts_with("Link/Resource was not found - No pacts were found for this provider")).to(be_true());
+      }
+    }
+  }
+
+  #[test_log::test(tokio::test)]
+  async fn fetch_pacts_for_verification_handles_validation_errors() {
+    let pact_broker = PactBuilderAsync::new("RustPactVerifier", "PactBroker")
+      .interaction("a request to the pact broker root", "", |mut i| async move {
+        i.given("Pacts for verification is enabled");
+        i.request
+          .path("/")
+          .header("Accept", "application/hal+json")
+          .header("Accept", "application/json");
+        i.response
+          .header("Content-Type", "application/hal+json")
+          .json_body(json_pattern!({
+              "_links": {
+                "pb:provider-pacts-for-verification": {
+                  "href": like!("http://localhost/pacts/provider/{provider}/for-verification"),
+                  "title": like!("Pact versions to be verified for the specified provider"),
+                  "templated": like!(true)
+                }
+              }
+          }));
+        i
+      })
+      .await
+      .interaction("a request to the pacts for verification endpoint", "", |mut i| async move {
+        i.request
+          .get()
+          .path("/pacts/provider/sad_provider/for-verification")
+          .header("Accept", "application/hal+json")
+          .header("Accept", "application/json");
+        i.response
+          .header("Content-Type", "application/hal+json")
+          .json_body(json_pattern!({
+            "_links": {
+                "self": {
+                  "href": like!("http://localhost/pacts/provider/sad_provider/for-verification"),
+                  "title": like!("Pacts to be verified")
+                }
+            }
+        }));
+        i
+      })
+      .await
+      .interaction("a request to fetch pacts to be verified", "", |mut i| async move {
+        i.request
+          .post()
+          .path("/pacts/provider/sad_provider/for-verification")
+          .header("Accept", "application/hal+json")
+          .header("Accept", "application/json")
+          .json_body(json_pattern!({
+            "providerVersionTags": [],
+            "consumerVersionSelectors": each_like!({
+                "tag": "prod"
+            }),
+            "includePendingStatus": like!(true)
+          }));
+        i.response
+          .status(400)
+          .content_type("application/json")
+          .json_body(json_pattern!({
+              "errors": {
+                "providerVersionBranch": [
+                  "when pending or WIP pacts are enabled and there are no tags provided, the provider version branch must not be an empty string, as it is used in the calculations for WIP/pending. A value must be provided (recommended), or it must not be set at all."
+                ]
+              }
+            }));
+        i
+      })
+      .await
+      .start_mock_server(None);
+
+    let result = fetch_pacts_dynamically_from_broker(
+      pact_broker.url().as_str(),
+      "sad_provider".to_string(),
+      false,
+      None,
+      vec![],
+      None,
+      vec!(ConsumerVersionSelector {
+        consumer: None,
+        tag: Some("prod".to_string()),
+        fallback_tag: None,
+        latest: None,
+        branch: None,
+        deployed_or_released: None,
+        deployed: None,
+        released: None,
+        main_branch: None,
+        matching_branch: None,
+        environment: None,
+      }),
+      None
+    ).await;
+
+    match result {
+      Ok(_) => panic!("Expected an error result, but got OK"),
+      Err(err) => {
+        println!("err: {}", err);
+        expect!(err.to_string()).to(be_equal_to(
+          "failed validation - [\"providerVersionBranch: when pending or WIP pacts are enabled and there are no tags provided, the provider version branch must not be an empty string, as it is used in the calculations for WIP/pending. A value must be provided (recommended), or it must not be set at all.\"]"
+        ));
       }
     }
   }
@@ -2148,7 +2300,9 @@ mod tests {
           .path("/pacticipants/Pact%20Broker/branches/feat%2F1234/versions/1234")
           .json_body(json!({}));
         i.response
-          .status(200);
+          .status(200)
+          .content_type("application/json")
+          .json_body(json!({}));
         i
       })
       .await
