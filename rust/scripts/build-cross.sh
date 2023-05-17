@@ -110,10 +110,10 @@ for target in "${targets[@]}"; do
     echo "building for $target with cross"
     cross build --target "${target}" --release
   fi
+  echo "finished building cargo build for target ${target}, showing release assets"
+  ls ../target/${target}/release
 
   if [[ $crate == 'pact_ffi' ]];then
-    
-
     if [[ $target == *"windows"* ]]; then
       lib_ext=dll
       lib_name=pact_ffi
@@ -128,8 +128,7 @@ for target in "${targets[@]}"; do
       lib_name=libpact_ffi
     fi
 
-    echo "showing cargo release build for lib${lib_name}.${lib_ext} and checksum for target ${target}"
-    ls ../target/${target}/release
+    echo "packaging cargo build for lib${lib_name}.${lib_ext} and checksum for target ${target}"
 
     if [[ $target == *"windows"* ]]; then
       if [[ $target != *"gnu"* ]]; then
@@ -162,8 +161,8 @@ for target in "${targets[@]}"; do
       if [[ $target == *"windows"* ]]; then
         ext=.exe
       fi
-      gzip -c target/$target/release/$crate$ext > target/artifacts/$crate-$target$ext.gz
-      openssl dgst -sha256 -r target/artifacts/$crate-$target.exe.gz > target/artifacts/$crate-$target$ext.gz.sha256
+      gzip -c ../target/$target/release/$crate$ext > ../target/artifacts/$crate-$target$ext.gz
+      openssl dgst -sha256 -r ../target/artifacts/$crate-$target.exe.gz > ../target/artifacts/$crate-$target$ext.gz.sha256
   fi
 done
 echo "showing final release artefacts"

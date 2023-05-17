@@ -7,6 +7,8 @@ rustc --version
 
 cargo install --force cbindgen
 rm -rf ./include
+rm -rf ../target/artifacts
+mkdir -p ../target/artifacts
 
 rustup toolchain install nightly
 
@@ -30,6 +32,13 @@ rustup run nightly cbindgen \
   --config cbindgen-c++.toml \
   --crate pact_ffi \
   --output include/pact-c++.h
+
+echo -------------------------------------
+echo - Copy headers to artifacts for release
+echo -------------------------------------
+
+cp include/*.h ../target/artifacts
+ls ../target/artifacts
 
 echo -------------------------------------
 echo - Make library available for examples
