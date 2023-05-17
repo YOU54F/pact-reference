@@ -29,15 +29,75 @@ jobs:
       - run: echo "${{ toJson(steps.generate_matrix.outputs.crate) }}"
         name: Testing ${{ toJson(steps.generate_matrix.outputs.crate) }}
   
+  test:
+    if: ${{ fromJson(needs.setup_matrix.outputs.crate) }} == [\"pact_ffi\"]
+    needs: setup_matrix
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ ubuntu-latest ]
+        rust: [ stable ]
+    env:
+      pact_do_not_track: true
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustc --version || true
+        shell: bash
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Install shared mime info DB
+        if: runner.os == 'macOS'
+        run: brew install shared-mime-info
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - name: Install doxygen
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y doxygen
+      - name: Build pact_ffi with CMake
+        run: ./ci-build.sh
+        working-directory: rust/pact_ffi
+        shell: bash
+      - name: Run the C FFI tests
+        if: runner.os == 'Linux'
+        working-directory: c/consumer-verification
+        run: |
+          sudo apt update
+          sudo apt install libcurl4-openssl-dev
+          /usr/bin/aclocal
+          autoconf
+          automake --add-missing
+          ./configure
+          make
+          src/consumer-verification basic ../../rust/target/debug/libpact_ffi.so
+          src/consumer-verification error ../../rust/target/debug/libpact_ffi.so
+      - name: Upload the pact_ffi header files
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: release-artifacts
+          path: rust/target/artifacts
+      - name: Upload Release Assets
+        if: startsWith(github.ref, 'refs/tags/libpact_ffi')
+        uses: svenstaro/upload-release-action@2.5.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: rust/target/artifacts/*
+          file_glob: true
+          tag: ${{ github.ref }}
+
   cross:
     runs-on: ${{ matrix.os }}
-    needs: setup_matrix
+    needs: [setup_matrix,test]
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
         target: # https://github.com/cross-rs/cross/blob/main/targets.toml
           # ✅ These all build with cross 
@@ -82,6 +142,7 @@ jobs:
         shell: bash
         env:
           target: ${{ matrix.target }}
+          crate: ${{ matrix.crate }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
@@ -102,7 +163,7 @@ jobs:
 
   windows:
     runs-on: ${{ matrix.os }}
-    needs: setup_matrix
+    needs: [setup_matrix, test]
     defaults:
       run:
         shell: bash
@@ -131,6 +192,7 @@ jobs:
         shell: bash
         env:
           target: ${{ matrix.target }}
+          crate: ${{ matrix.crate }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
@@ -151,7 +213,7 @@ jobs:
 
   macos:
     runs-on: ${{ matrix.os }}
-    needs: setup_matrix
+    needs: [setup_matrix, test]
     defaults:
       run:
         shell: bash
@@ -181,6 +243,7 @@ jobs:
         shell: bash
         env:
           target: ${{ matrix.target }}
+          crate: ${{ matrix.crate }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
         working-directory: rust/target/${{ matrix.target }}/release
@@ -199,36 +262,3 @@ jobs:
           file_glob: true
           tag: ${{ github.ref }}
 
-
-  build_headers:
-    if: ${{ fromJson(needs.setup_matrix.outputs.crate) }} == [\"pact_ffi\"]
-    runs-on: ${{ matrix.operating-system }}
-    needs: setup_matrix
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v3
-      - run: rustc --version || true
-        shell: bash
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - name: Build headers with cargo pact_ffi
-        run: ./build-headers.sh
-        working-directory: rust/pact_ffi
-        shell: bash
-      - name: Upload the artifacts
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: release-artifacts
-          path: rust/target/artifacts
-      - name: Upload Release Assets
-        if: startsWith(github.ref, 'refs/tags/libpact_ffi')
-        uses: svenstaro/upload-release-action@2.5.0
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: rust/target/artifacts/*
-          file_glob: true
-          tag: ${{ github.ref }}

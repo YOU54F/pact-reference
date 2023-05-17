@@ -158,7 +158,7 @@ for target in "${targets[@]}"; do
       openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
     fi
 
-  else if [[ $crate == 'pact_verifier_cli' || $crate == 'pact_mock_server_cli' ]]; then
+  elif [[ $crate == 'pact_verifier_cli' || $crate == 'pact_mock_server_cli' ]]; then
       if [[ $target == *"windows"* ]]; then
         ext=.exe
       fi
