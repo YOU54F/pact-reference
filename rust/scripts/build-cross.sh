@@ -97,8 +97,8 @@ for target in "${targets[@]}"; do
     cd $crate
   fi
 
-  if [[ $target == *"ios"* ]]; then
-      rustup target add aarch64-apple-ios armv7-apple-ios armv7s-apple-ios x86_64-apple-ios i386-apple-ios
+  if [[ $target == *"ios"* && $crate == 'pact_ffi' ]]; then
+      rustup target add aarch64-apple-ios x86_64-apple-ios
       cargo install cargo-lipo
       cargo clean
       cargo lipo --release
@@ -116,7 +116,12 @@ for target in "${targets[@]}"; do
     cross build --target "${target}" --release
   fi
   echo "finished building cargo build for target ${target}, showing release assets"
-  ls ../target/${target}/release
+    if [[ $target == *"ios"* ]]; then
+      ls ../target/universal/release
+    else 
+      ls ../target/${target}/release
+    fi
+
 
   if [[ $crate == 'pact_ffi' ]];then
     if [[ $target == *"windows"* ]]; then
@@ -169,12 +174,11 @@ for target in "${targets[@]}"; do
     fi
 
   elif [[ $crate == 'pact_verifier_cli' || $crate == 'pact_mock_server_cli' ]]; then
-    if [[ $target == "ios" ]]; then 
-      gzip -c ../target/universal/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-ios-universal.a.gz
-      openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-ios-universal.a.gz > ../target/artifacts/libpact_ffi-ios-universal.a.gz.sha256
-    else
-
-    fi
+      if [[ $target == *"windows"* ]]; then
+        ext=.exe
+      fi
+      gzip -c ../target/$target/release/$crate$ext > ../target/artifacts/$crate-$target$ext.gz
+      openssl dgst -sha256 -r ../target/artifacts/$crate-$target$ext.gz > ../target/artifacts/$crate-$target$ext.gz.sha256
   fi
 done
 echo "showing final release artefacts"
