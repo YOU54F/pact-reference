@@ -97,7 +97,12 @@ for target in "${targets[@]}"; do
     cd $crate
   fi
 
-  if [[ $target == *"musl"* && $crate == 'pact_ffi' ]]; then
+  if [[ $target == *"ios"* ]]; then
+      rustup target add aarch64-apple-ios armv7-apple-ios armv7s-apple-ios x86_64-apple-ios i386-apple-ios
+      cargo install cargo-lipo
+      cargo clean
+      cargo lipo --release
+  elif [[ $target == *"musl"* && $crate == 'pact_ffi' ]]; then
     echo "building for musl $target"
     # https://github.com/rust-lang/cargo/issues/7154
     RUSTFLAGS="-C target-feature=-crt-static" cross build --target "${target}" --release
@@ -143,26 +148,33 @@ for target in "${targets[@]}"; do
       fi
     fi
 
-    ## cdylib - shared lib .so / .dll / .dylib / .a depending on platform
-    echo "preparing shared lib${lib_name}.${lib_ext} and checksum for target ${target}"
-    gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
-    openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+    if [[ $target == "ios" ]]; then 
+      gzip -c ../target/universal/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-ios-universal.a.gz
+      openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-ios-universal.a.gz > ../target/artifacts/libpact_ffi-ios-universal.a.gz.sha256
+    else
 
-    ## static lib .a
-    ## only prepare the static lib if it exists
-    lib_ext=a
-    if [[ -f ../target/${target}/release/${lib_name}.${lib_ext} ]]; then
-      echo "preparing static lib${lib_name}.${lib_ext} and checksum for target ${target}"
+      ## cdylib - shared lib .so / .dll / .dylib / .a depending on platform
+      echo "preparing shared lib${lib_name}.${lib_ext} and checksum for target ${target}"
       gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
       openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+
+      ## static lib .a
+      ## only prepare the static lib if it exists
+      lib_ext=a
+      if [[ -f ../target/${target}/release/${lib_name}.${lib_ext} ]]; then
+        echo "preparing static lib${lib_name}.${lib_ext} and checksum for target ${target}"
+        gzip -c ../target/${target}/release/${lib_name}.${lib_ext} >../target/artifacts/${lib_name}-${target}.${lib_ext}.gz
+        openssl dgst -sha256 -r ../target/artifacts/${lib_name}-${target}.${lib_ext}.gz >../target/artifacts/${lib_name}-${target}.${lib_ext}.sha256
+      fi
     fi
 
   elif [[ $crate == 'pact_verifier_cli' || $crate == 'pact_mock_server_cli' ]]; then
-      if [[ $target == *"windows"* ]]; then
-        ext=.exe
-      fi
-      gzip -c ../target/$target/release/$crate$ext > ../target/artifacts/$crate-$target$ext.gz
-      openssl dgst -sha256 -r ../target/artifacts/$crate-$target.exe.gz > ../target/artifacts/$crate-$target$ext.gz.sha256
+    if [[ $target == "ios" ]]; then 
+      gzip -c ../target/universal/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-ios-universal.a.gz
+      openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-ios-universal.a.gz > ../target/artifacts/libpact_ffi-ios-universal.a.gz.sha256
+    else
+
+    fi
   fi
 done
 echo "showing final release artefacts"
