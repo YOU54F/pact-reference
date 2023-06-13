@@ -293,7 +293,7 @@ jobs:
           crate: ${{ matrix.crate }}
       - name: Show ${{ matrix.crate }} release
         run: ls && ls ../../artifacts
-        working-directory: rust/target/${{ matrix.target }}/release
+        working-directory: rust/target/universal/release
         shell: bash
       - name: Upload the artifacts
         uses: actions/upload-artifact@v3.1.2
