@@ -31,7 +31,7 @@
 //!
 //! ```toml
 //! [dev-dependencies]
-//! pact_consumer = "0.10"
+//! pact_consumer = "1.0"
 //! ```
 //!
 //! Once this is done, you can then write the following inside a function marked
@@ -393,6 +393,7 @@ pub mod util;
 /// ```
 pub mod prelude {
     pub use crate::builders::{HttpPartBuilder, PactBuilder, PactBuilderAsync};
+    pub use crate::builders::plugin_builder::PluginInteractionBuilder;
     pub use crate::mock_server::{StartMockServer, ValidatingMockServer};
     pub use crate::patterns::{EachLike, Like, Term};
     pub use crate::patterns::{JsonPattern, Pattern, StringPattern};

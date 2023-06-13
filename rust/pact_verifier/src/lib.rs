@@ -26,7 +26,7 @@ use pact_models::generators::GeneratorTestMode;
 use pact_models::http_utils::HttpAuth;
 use pact_models::interaction::Interaction;
 use pact_models::json_utils::json_to_string;
-use pact_models::pact::{Pact, read_pact};
+use pact_models::pact::{load_pact_from_json, Pact, read_pact};
 use pact_models::prelude::v4::SynchronousHttp;
 use pact_models::provider_states::*;
 use pact_models::v4::interaction::V4Interaction;
@@ -109,7 +109,9 @@ pub enum PactSource {
       auth: Option<HttpAuth>,
       /// Links to the specific Pact resources. Internal field
       links: Vec<Link>
-    }
+    },
+    /// Load the Pact from some JSON (used for testing purposed)
+    String(String)
 }
 
 impl Display for PactSource {
@@ -432,7 +434,7 @@ async fn verify_interaction<'a, F: RequestFilterExecutor, S: ProviderStateExecut
       .map_err(|e| (e, vec![]))
   };
 
-  if !interaction.provider_states().is_empty() && provider_state_executor.teardown() {
+  if provider_state_executor.teardown() {
     execute_provider_states(interaction, provider_state_executor, &client, false)
       .await
       .map_err(|e| (e, vec![], start.elapsed()))?;
@@ -641,7 +643,7 @@ async fn execute_provider_states<S: ProviderStateExecutor>(
 }
 
 /// Configure the HTTP client to use for requests to the provider
-fn configure_http_client<F: RequestFilterExecutor>(
+pub(crate) fn configure_http_client<F: RequestFilterExecutor>(
   options: &VerificationOptions<F>
 ) -> anyhow::Result<Client> {
   let mut client_builder = reqwest::Client::builder()
@@ -1236,9 +1238,12 @@ async fn fetch_pact(
           }
           buffer
         },
-        Err(err) => vec![
-          Err(anyhow!(err).context(format!("Could not load pacts from the pact broker '{}'", broker_url)))
-        ]
+        Err(err) => {
+          error!("Could not load pacts from pact broker '{}': {}", broker_url, err);
+          vec![
+            Err(anyhow!(err).context(format!("Could not load pacts from pact broker '{}'", broker_url)))
+          ]
+        }
       }
     },
     PactSource::BrokerWithDynamicConfiguration {
@@ -1263,7 +1268,7 @@ async fn fetch_pact(
           for result in pacts.iter() {
             match result {
               Ok((pact, context, links)) => {
-                trace!("Got pact with links {:?}", pact);
+                trace!(?links, ?pact, "Got pact with links");
                 buffer.push(Ok((
                   pact.boxed(),
                   context.clone(),
@@ -1276,11 +1281,22 @@ async fn fetch_pact(
           }
           buffer
         },
-        Err(err) => vec![
-          Err(err.context(format!("Could not load pacts from the pact broker '{}'", broker_url)))
-        ]
+        Err(err) => {
+          error!("Could not load pacts from pact broker '{}': {}", broker_url, err);
+          vec![
+            Err(err.context(format!("Could not load pacts from pact broker '{}'", broker_url)))
+          ]
+        }
       }
     },
+    PactSource::String(json) => vec![
+      timeit(|| serde_json::from_str(json)
+        .map_err(|err| anyhow!(err))
+        .and_then(|json| load_pact_from_json("<json>", &json)))
+        .map(|(pact, tm)| {
+          (pact, None, source.clone(), tm)
+        })
+    ],
     _ => vec![Err(anyhow!("Could not load pacts, unknown pact source {}", source))]
   }
 }
@@ -1324,7 +1340,7 @@ async fn fetch_pacts(
 }
 
 /// Internal function, public for testing purposes
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(pact))]
 pub async fn verify_pact_internal<'a, F: RequestFilterExecutor, S: ProviderStateExecutor>(
   provider_info: &ProviderInfo,
   filter: &FilterInfo,
@@ -1497,12 +1513,17 @@ async fn publish_result(
   source: &PactSource,
   options: &PublishOptions,
 ) {
-  let publish_result = match source.clone() {
+  let publish_result = match source {
     PactSource::BrokerUrl(_, broker_url, auth, links) => {
-      publish_to_broker(results, source, &options.build_url, &options.provider_tags, &options.provider_branch, &options.provider_version, links, broker_url, auth).await
+      publish_to_broker(results, source, &options.build_url, &options.provider_tags,
+        &options.provider_branch, &options.provider_version, links.clone(), broker_url.clone(),
+        auth.clone()
+      ).await
     }
     PactSource::BrokerWithDynamicConfiguration { broker_url, auth, links, provider_branch, provider_tags, .. } => {
-      publish_to_broker(results, source, &options.build_url, &provider_tags, &provider_branch, &options.provider_version, links, broker_url, auth).await
+      publish_to_broker(results, source, &options.build_url, &provider_tags, &provider_branch,
+        &options.provider_version, links.clone(), broker_url.clone(), auth.clone()
+      ).await
     }
     _ => {
       info!("Not publishing results as publishing for pact source {:?} is not possible or not yet implemented", source);

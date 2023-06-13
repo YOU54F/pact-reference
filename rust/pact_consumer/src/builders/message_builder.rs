@@ -20,7 +20,7 @@ use serde_json::{json, Map, Value};
 use tracing::debug;
 
 use crate::patterns::JsonPattern;
-use crate::prelude::Pattern;
+use crate::prelude::{Pattern, PluginInteractionBuilder};
 
 #[derive(Clone, Debug)]
 /// Asynchronous message interaction builder. Normally created via PactBuilder::message_interaction.
@@ -69,6 +69,15 @@ impl MessageInteractionBuilder {
   /// page, and potentially in the test output.
   pub fn test_name<G: Into<String>>(&mut self, name: G) -> &mut Self {
     self.test_name = Some(name.into());
+    self
+  }
+
+  /// Adds a key/value pair to the message metadata. The key can be anything that is convertible
+  /// into a string, and the value must be conveyable into a JSON value.
+  pub fn metadata<S: Into<String>, J: Into<Value>>(&mut self, key: S, value: J) -> &mut Self {
+    let metadata = self.message_contents.metadata
+      .get_or_insert_with(|| hashmap!{});
+    metadata.insert(key.into(), value.into());
     self
   }
 
@@ -163,6 +172,11 @@ impl MessageInteractionBuilder {
     self
   }
 
+  /// Configure the interaction contents from a plugin builder
+  pub async fn contents_for_plugin<B: PluginInteractionBuilder>(&mut self, builder: B) -> &mut Self {
+    self.contents_from(builder.build()).await
+  }
+
   fn setup_core_matcher(
     &mut self,
     content_type: &ContentType,
@@ -236,5 +250,28 @@ impl MessageInteractionBuilder {
       }
     }
     self
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use expectest::prelude::*;
+  use maplit::hashmap;
+  use serde_json::json;
+
+  use crate::builders::MessageInteractionBuilder;
+
+  #[test]
+  fn supports_setting_metadata_values() {
+    let message = MessageInteractionBuilder::new("test")
+      .metadata("a", "a")
+      .metadata("b", json!("b"))
+      .metadata("c", vec![1, 2, 3])
+      .build();
+    expect!(message.contents.metadata).to(be_equal_to(hashmap! {
+      "a".to_string() => json!("a"),
+      "b".to_string() => json!("b"),
+      "c".to_string() => json!([1, 2, 3])
+    }));
   }
 }

@@ -5,9 +5,11 @@ on: [push, pull_request]
 jobs:
   v1:
     runs-on: ubuntu-latest
+    env:
+      pact_do_not_track: true
     steps:
     - uses: actions/checkout@v2
     - uses: dtolnay/rust-toolchain@stable
     - name: Run Cucumber
-      run: cargo test --test v1
+      run: cargo test --test v1*
       working-directory: compatibility-suite

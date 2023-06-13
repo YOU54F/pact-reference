@@ -17,7 +17,7 @@ use pact_plugin_driver::plugin_models::PactPluginManifest;
 use serde_json::{json, Map, Value};
 use tracing::debug;
 
-use crate::prelude::{JsonPattern, Pattern};
+use crate::prelude::{JsonPattern, Pattern, PluginInteractionBuilder};
 
 #[derive(Clone, Debug)]
 /// Synchronous message interaction builder. Normally created via PactBuilder::sync_message_interaction.
@@ -67,6 +67,15 @@ impl SyncMessageInteractionBuilder {
   /// page, and potentially in the test output.
   pub fn test_name<G: Into<String>>(&mut self, name: G) -> &mut Self {
     self.test_name = Some(name.into());
+    self
+  }
+
+  /// Adds a key/value pair to the message request metadata. The key can be anything that is
+  /// convertible into a string, and the value must be conveyable into a JSON value.
+  pub fn request_metadata<S: Into<String>, J: Into<Value>>(&mut self, key: S, value: J) -> &mut Self {
+    let metadata = self.request_contents.metadata
+      .get_or_insert_with(|| hashmap!{});
+    metadata.insert(key.into(), value.into());
     self
   }
 
@@ -129,7 +138,7 @@ impl SyncMessageInteractionBuilder {
     markup
   }
 
-  /// Configure the interaction contents from a map
+  /// Configure the interaction contents from a map of values
   pub async fn contents_from(&mut self, contents: Value) -> &mut Self {
     debug!("Configuring interaction from {:?}", contents);
 
@@ -174,6 +183,11 @@ impl SyncMessageInteractionBuilder {
     }
 
     self
+  }
+
+  /// Configure the interaction contents from a plugin builder
+  pub async fn contents_for_plugin<B: PluginInteractionBuilder>(&mut self, builder: B) -> &mut Self {
+    self.contents_from(builder.build()).await
   }
 
   fn add_plugin_config(&mut self, plugin_config: PluginConfiguration, plugin_name: String) {
@@ -313,5 +327,28 @@ impl SyncMessageInteractionBuilder {
       });
     }
     self
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use expectest::prelude::*;
+  use maplit::hashmap;
+  use serde_json::json;
+
+  use crate::builders::SyncMessageInteractionBuilder;
+
+  #[test]
+  fn supports_setting_metadata_values() {
+    let message = SyncMessageInteractionBuilder::new("test")
+      .request_metadata("a", "a")
+      .request_metadata("b", json!("b"))
+      .request_metadata("c", vec![1, 2, 3])
+      .build();
+    expect!(message.request.metadata).to(be_equal_to(hashmap! {
+      "a".to_string() => json!("a"),
+      "b".to_string() => json!("b"),
+      "c".to_string() => json!([1, 2, 3])
+    }));
   }
 }
