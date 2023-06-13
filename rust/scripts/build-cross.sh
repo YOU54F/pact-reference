@@ -3,7 +3,7 @@
 set -e
 
 echo -Setup directories --
-cargo clean
+# cargo clean
 mkdir -p ../target/artifacts
 
 echo -Install latest version of cross --
@@ -41,9 +41,7 @@ linux_targets=(
 macos_targets=(
   aarch64-apple-darwin
   x86_64-apple-darwin
-  aarch64-apple-ios
-  aarch64-apple-ios-sim
-  x86_64-apple-ios
+  universal-ios
 )
 windows_targets=(
   x86_64-pc-windows-msvc
@@ -99,8 +97,8 @@ for target in "${targets[@]}"; do
 
   if [[ $target == *"ios"* && $crate == 'pact_ffi' ]]; then
       rustup target add aarch64-apple-ios x86_64-apple-ios
+      # rustup target add aarch64-apple-ios armv7-apple-ios armv7s-apple-ios x86_64-apple-ios i386-apple-ios
       cargo install cargo-lipo
-      cargo clean
       cargo lipo --release
   elif [[ $target == *"musl"* && $crate == 'pact_ffi' ]]; then
     echo "building for musl $target"
@@ -116,7 +114,7 @@ for target in "${targets[@]}"; do
     cross build --target "${target}" --release
   fi
   echo "finished building cargo build for target ${target}, showing release assets"
-    if [[ $target == *"ios"* ]]; then
+    if [[ $target == "universal-ios" ]]; then 
       ls ../target/universal/release
     else 
       ls ../target/${target}/release
@@ -138,7 +136,7 @@ for target in "${targets[@]}"; do
       lib_name=libpact_ffi
     fi
 
-    echo "packaging cargo build for lib${lib_name}.${lib_ext} and checksum for target ${target}"
+    echo "packaging cargo build for ${lib_name}.${lib_ext} and checksum for target ${target}"
 
     if [[ $target == *"windows"* ]]; then
       if [[ $target != *"gnu"* ]]; then
@@ -153,7 +151,7 @@ for target in "${targets[@]}"; do
       fi
     fi
 
-    if [[ $target == "ios" ]]; then 
+    if [[ $target == "universal-ios" ]]; then 
       gzip -c ../target/universal/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-ios-universal.a.gz
       openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-ios-universal.a.gz > ../target/artifacts/libpact_ffi-ios-universal.a.gz.sha256
     else
@@ -181,5 +179,5 @@ for target in "${targets[@]}"; do
       openssl dgst -sha256 -r ../target/artifacts/$crate-$target$ext.gz > ../target/artifacts/$crate-$target$ext.gz.sha256
   fi
 done
-echo "showing final release artefacts"
+echo "showing final release artifacts"
 ls ../target/artifacts
