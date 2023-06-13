@@ -269,7 +269,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
+        crate: [pact_ffi]
+        # crate: ${{ fromJson(needs.setup_matrix.outputs.crate) }}
         os: [macos-latest]
         target:
           - universal-ios # ✅ ## produce a universal binary

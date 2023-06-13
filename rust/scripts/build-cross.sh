@@ -95,7 +95,8 @@ for target in "${targets[@]}"; do
     cd $crate
   fi
 
-  if [[ $target == *"ios"* && $crate == 'pact_ffi' ]]; then
+  # if [[ $target == *"ios"* && $crate == 'pact_ffi' ]]; then
+  if [[ $target == *"ios" ]]; then
       rustup target add aarch64-apple-ios x86_64-apple-ios
       # rustup target add aarch64-apple-ios armv7-apple-ios armv7s-apple-ios x86_64-apple-ios i386-apple-ios
       cargo install cargo-lipo
@@ -113,7 +114,7 @@ for target in "${targets[@]}"; do
     echo "building for $target with cross"
     cross build --target "${target}" --release
   fi
-  echo "finished building cargo build for target ${target}, showing release assets"
+  echo "finished building cargo build $crate for target ${target}, showing release assets"
     if [[ $target == "universal-ios" ]]; then 
       ls ../target/universal/release
     else 
@@ -153,7 +154,11 @@ for target in "${targets[@]}"; do
 
     if [[ $target == "universal-ios" ]]; then 
       gzip -c ../target/universal/release/libpact_ffi.a > ../target/artifacts/libpact_ffi-ios-universal.a.gz
+      # gzip -c ../target/universal/release/libpact_mock_server.a > ../target/artifacts/libpact_mock_server-ios-universal.a.gz
+      # gzip -c ../target/universal/release/libpact_verifier.a > ../target/artifacts/libpact_verifier-ios-universal.a.gz
       openssl dgst -sha256 -r ../target/artifacts/libpact_ffi-ios-universal.a.gz > ../target/artifacts/libpact_ffi-ios-universal.a.gz.sha256
+      # openssl dgst -sha256 -r ../target/artifacts/libpact_mock_server-ios-universal.a.gz > ../target/artifacts/libpact_mock_server-ios-universal.a.gz.sha256
+      # openssl dgst -sha256 -r ../target/artifacts/libpact_verifier-ios-universal.a.gz > ../target/artifacts/libpact_verifier-ios-universal.a.gz.sha256
     else
 
       ## cdylib - shared lib .so / .dll / .dylib / .a depending on platform
