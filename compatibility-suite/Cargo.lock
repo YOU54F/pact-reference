@@ -1376,6 +1376,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "infer"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "865e8a58ae8e24d2c4412c31344afa1d302a3740ad67528c10f50d6876cdcf55"
+
+[[package]]
 name = "inflections"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1987,6 +1993,7 @@ dependencies = [
  "futures",
  "hex",
  "http",
+ "infer",
  "itertools 0.10.5",
  "lazy_static",
  "lenient_semver",
@@ -2008,7 +2015,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-core",
- "tree_magic_mini",
  "uuid",
 ]
 
@@ -2042,9 +2048,9 @@ dependencies = [
 
 [[package]]
 name = "pact_models"
-version = "1.1.10"
+version = "1.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68d787abdd01b9a06895b186ed65503f6aac02bd53bed0179a218427b1ad78ca"
+checksum = "433134c4afa7d69f3a9a6847a4f172b0361ca480f0d6055bb2129a9411ccadd2"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -3525,20 +3531,6 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
-]
-
-[[package]]
-name = "tree_magic_mini"
-version = "3.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91adfd0607cacf6e4babdb870e9bec4037c1c4b151cfd279ccefc5e0c7feaa6d"
-dependencies = [
- "bytecount",
- "fnv",
- "lazy_static",
- "nom",
- "once_cell",
- "petgraph",
 ]
 
 [[package]]
