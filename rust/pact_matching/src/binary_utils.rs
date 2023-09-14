@@ -32,22 +32,38 @@ use crate::matchers::Matches;
 
 pub fn match_content_type<S>(data: &[u8], expected_content_type: S) -> anyhow::Result<()>
   where S: Into<String> {
-  let result = infer::get(data).expect("file type is known");
   let expected = expected_content_type.into();
-  let matches = result.mime_type() == expected;
-  debug!("Matching binary contents by content type: expected '{}', detected '{}' -> {}",
-         expected, result, matches);
-  if matches {
-    Ok(())
-  } else if result.mime_type() == "text/plain" {
-    detect_content_type_from_bytes(data)
-      .and_then(|ct| if ct ==  ContentType::from(&expected) { Some(()) } else { None })
-      .ok_or_else(|| anyhow!("Expected binary contents to have content type '{}' but detected contents was '{}'",
-        expected, result))
-  } else {
-    Err(anyhow!("Expected binary contents to have content type '{}' but detected contents was '{}'",
-      expected, result))
+
+  match infer::get(data) {
+    Some(result) => {
+      let matches: bool = result.mime_type() == expected;
+      debug!("Matching binary contents by content type: expected '{}', detected '{}' -> {}",
+             expected, result.mime_type(), matches);
+      if matches {
+        Ok(())
+      } else if result.mime_type() == "text/plain" {
+        detect_content_type_from_bytes(data)
+          .and_then(|ct| if ct ==  ContentType::from(&expected) { Some(()) } else { None })
+          .ok_or_else(|| anyhow!("Expected binary contents to have content type '{}' but detected contents was '{}'",
+            expected, result.mime_type()))
+      } else {
+        Err(anyhow!("Expected binary contents to have content type '{}' but detected contents was '{}'",
+          expected, result.mime_type()))
+      }
+    }
+    None => {
+      let ct = detect_content_type_from_bytes(data).unwrap().base_type();
+      let expected_ct = ContentType::from(&expected);
+      if ct !=  expected_ct  {
+        return Err(anyhow!("Expected binary contents to have content type '{}' but detected contents was '{}'",
+        expected_ct,ct))
+      }
+      else {
+        Ok(())
+      }
+    }
   }
+
 }
 
 pub fn convert_data(data: &Value) -> Vec<u8> {
