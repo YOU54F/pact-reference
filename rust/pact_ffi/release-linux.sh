@@ -37,7 +37,7 @@ openssl dgst -sha256 -r ../release_artifacts/libpact_ffi-linux-x86_64-musl.a.gz 
 
 mkdir tmp 
 cp ../target/x86_64-unknown-linux-musl/release/libpact_ffi.a tmp/
-docker run --platform=linux/amd64 --rm -it -v $PWD/tmp:/scratch alpine /bin/sh -c 'apk add --no-cache musl-dev gcc && \ 
+docker run --platform=linux/amd64 --rm -v $PWD/tmp:/scratch alpine /bin/sh -c 'apk add --no-cache musl-dev gcc && \ 
 cd /scratch && \
     ar -x libpact_ffi.a && \
     gcc -shared *.o -o libpact_ffi.so && \
@@ -56,7 +56,7 @@ openssl dgst -sha256 -r ../release_artifacts/libpact_ffi-linux-aarch64-musl.a.gz
 
 mkdir tmp 
 cp ../target/aarch64-unknown-linux-musl/release/libpact_ffi.a tmp/
-docker run --platform=linux/arm64 --rm -it -v $PWD/tmp:/scratch alpine /bin/sh -c 'apk add --no-cache musl-dev gcc && \ 
+docker run --platform=linux/arm64 --rm -v $PWD/tmp:/scratch alpine /bin/sh -c 'apk add --no-cache musl-dev gcc && \ 
 cd /scratch && \
     ar -x libpact_ffi.a && \
     gcc -shared *.o -o libpact_ffi.so && \
