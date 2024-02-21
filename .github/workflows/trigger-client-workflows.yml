@@ -16,20 +16,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
     outputs:
-        PACT_FFI_VERSION: ${{ env.PACT_FFI_VERSION }}
+      PACT_FFI_REL_TAG: ${{ env.PACT_FFI_REL_TAG }}
+      PACT_FFI_VERSION: ${{ env.PACT_FFI_VERSION }}
 
   trigger_client_libraries:
     needs: verify_release
     strategy:
       fail-fast: false
       matrix:
-        repos: 
-            [
-            'you54f/pact-go',
-            'you54f/pact-php',
-            'you54f/pact-net',
-            'you54f/pact-js-core',
-            ]
+        repos:
+          [
+            "you54f/pact-go",
+            "you54f/pact-php",
+            "you54f/pact-net",
+            "you54f/pact-js-core",
+          ]
     runs-on: ubuntu-latest
     steps:
       - name: "Trigger client workflows"
@@ -38,4 +39,4 @@ jobs:
           workflow: libpact_ffi_update
           repo: ${{ matrix.repos }}
           token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
-          inputs: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}" }'
+          inputs: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'

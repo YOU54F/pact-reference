@@ -117,5 +117,6 @@ if [ ! -z "${ERRORS:-}" ]; then
     exit 1
 else
     echo "All release files are present"
-    echo "PACT_FFI_VERSION=${GH_TAG_OPTION}" >> $GITHUB_ENV 
+    echo "PACT_FFI_REL_TAG=${GH_TAG_OPTION}" >> $GITHUB_ENV 
+    echo "PACT_FFI_VERSION=$(echo $GH_TAG_OPTION |  cut -d'-' -f2-)" >> $GITHUB_ENV 
 fi
