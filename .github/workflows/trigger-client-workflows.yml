@@ -26,9 +26,9 @@ jobs:
       matrix:
         repos:
           [
-            "you54f/pact-go",
-            "you54f/pact-php",
-            "you54f/pact-net",
+            # "you54f/pact-go",
+            # "you54f/pact-php",
+            # "you54f/pact-net",
             "you54f/pact-js-core",
           ]
     runs-on: ubuntu-latest
@@ -36,7 +36,7 @@ jobs:
       - name: "Trigger client workflows"
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: libpact_ffi_update
+          workflow: 'Update Pact FFI Library'
           repo: ${{ matrix.repos }}
           token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
           inputs: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
