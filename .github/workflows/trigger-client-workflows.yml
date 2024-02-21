@@ -29,15 +29,26 @@ jobs:
             # "you54f/pact-go",
             # "you54f/pact-php",
             # "you54f/pact-net",
-            "you54f/pact-js-core",
+            "pact-js-core",
           ]
     runs-on: ubuntu-latest
     steps:
-      - name: "Trigger client workflows"
-        uses: peter-evans/repository-dispatch@v3
+      # - name: "Trigger client workflows"
+      #   uses: peter-evans/repository-dispatch@v3
+      #   with:
+      #     event-type: pact-ffi-released
+      #     repository: ${{ matrix.repos }}
+      #     token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+      #     client-payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
+      #     # client-payload: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
+      - uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
-          event-type: pact-ffi-released
-          repository: ${{ matrix.repos }}
-          token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
-          client-payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
-          # client-payload: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
+          owner: you54f
+          repo: ${{ matrix.repos }}
+          github_token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+          workflow_file_name: build-and-test.yml
+          wait_interval: 10
+          client_payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
+          # propagate_failure: false
+          # trigger_workflow: true
+          # wait_workflow: true
