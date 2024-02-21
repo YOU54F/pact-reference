@@ -62,5 +62,5 @@ jobs:
         run: |
           RUN_ID=$(gh run list --repo you54f/${{ matrix.repos }} --json databaseId --branch chore/upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }} --limit 1 | jq '.[].[]')
           gh run watch --repo you54f/${{ matrix.repos }} $RUN_ID
-          env:
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
