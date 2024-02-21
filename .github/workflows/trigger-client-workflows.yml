@@ -38,5 +38,5 @@ jobs:
         with:
           workflow: libpact_ffi_update
           repo: ${{ matrix.repos }}
-          token: ${{ secrets.GHTOKENFORTRIGGERINGPACTDOCSUPDATE }}
+          token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
           inputs: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}" }'
