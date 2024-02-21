@@ -12,7 +12,7 @@ jobs:
       - name: "check release libs"
         id: check
         run: |
-          scripts/ci/check-release-libs.sh
+          scripts/ci/check-release-libs.sh --list-assets
           echo "PACT_FFI_VERSION=${GH_TAG_OPTION}" >> $GITHUB_ENV 
         env:
           GITHUB_TOKEN: ${{ github.token }}
