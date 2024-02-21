@@ -1,0 +1,41 @@
+name: Trigger downstream builds
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  verify_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "check release libs"
+        id: check
+        run: |
+          scripts/ci/check-release-libs.sh
+          echo "PACT_FFI_VERSION=${GH_TAG_OPTION}" >> $GITHUB_ENV 
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+    outputs:
+        PACT_FFI_VERSION: ${{ env.PACT_FFI_VERSION }}
+
+  trigger_client_libraries:
+    needs: verify_release
+    strategy:
+      fail-fast: false
+      matrix:
+        repos: 
+            [
+            'you54f/pact-go',
+            'you54f/pact-php',
+            'you54f/pact-net',
+            'you54f/pact-js-core',
+            ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Trigger client workflows"
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: libpact_ffi_update
+          repo: ${{ matrix.repos }}
+          token: ${{ secrets.GHTOKENFORTRIGGERINGPACTDOCSUPDATE }}
+          inputs: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}" }'

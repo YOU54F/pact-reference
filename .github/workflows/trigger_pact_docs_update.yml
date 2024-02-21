@@ -1,11 +1,12 @@
 name: Trigger update to docs.pact.io
 
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - '**.md'
+on: [workflow_dispatch]
+# on:
+#   push:
+#     branches:
+#       - master
+#     paths:
+#       - '**.md'
 
 jobs:
   run:
