@@ -6,6 +6,16 @@ on:
 
 jobs:
   verify_release:
+    strategy:
+      fail-fast: false
+      matrix:
+        repos:
+          [
+            # "you54f/pact-go",
+            # "you54f/pact-php",
+            # "you54f/pact-net",
+            "pact-js-core",
+          ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
