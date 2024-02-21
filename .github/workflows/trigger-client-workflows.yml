@@ -48,7 +48,7 @@ jobs:
         with:
           event-type: pact-ffi-released
           repository: ${{ matrix.repos }}
-          token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+          token: ${{ github.token }}
           client-payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}" }'
       - name: sleep for 30 seconds to allow for PR to be created
         run: sleep 30
