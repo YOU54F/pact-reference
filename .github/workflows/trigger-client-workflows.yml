@@ -49,7 +49,7 @@ jobs:
           workflow_file_name: build-and-test.yml
           wait_interval: 10
           # ref: master
-          ref: upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }}
+          ref: chore/upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }}
           client_payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
           # propagate_failure: false
           # trigger_workflow: true
