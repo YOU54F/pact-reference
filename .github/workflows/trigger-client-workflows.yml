@@ -50,7 +50,7 @@ jobs:
           wait_interval: 10
           # ref: master
           ref: chore/upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }}
-          client_payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}" }'
+          client_payload: '{ "PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}" }'
           # propagate_failure: false
           # trigger_workflow: true
           # wait_workflow: true
