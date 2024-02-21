@@ -19,8 +19,32 @@ jobs:
       PACT_FFI_REL_TAG: ${{ env.PACT_FFI_REL_TAG }}
       PACT_FFI_VERSION: ${{ env.PACT_FFI_VERSION }}
 
-  trigger_client_libraries:
+  trigger_pr_update:
     needs: verify_release
+    strategy:
+      fail-fast: false
+      matrix:
+        repos:
+          [
+            # "you54f/pact-go",
+            # "you54f/pact-php",
+            # "you54f/pact-net",
+            "pact-js-core",
+          ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Trigger client workflows"
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: pact-ffi-released
+          repository: ${{ matrix.repos }}
+          token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+          client-payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
+      - name: sleep for 30 seconds to allow for PR to be created
+        run: sleep 30
+
+  trigger_client_libraries:
+    needs: [verify_release, trigger_pr_update]
     strategy:
       fail-fast: false
       matrix:
@@ -58,8 +82,9 @@ jobs:
         run: gh workflow run --repo you54f/${{ matrix.repos }} build-and-test.yml --ref chore/upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }} -f PACT_FFI_VERSION=${{ needs.verify_release.outputs.PACT_FFI_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+
   watch_client_libraries:
-    needs: [verify_release,trigger_client_libraries]
+    needs: [verify_release,trigger_pr_update, trigger_client_libraries]
     strategy:
       fail-fast: false
       matrix:
