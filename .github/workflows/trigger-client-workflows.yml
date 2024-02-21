@@ -58,9 +58,22 @@ jobs:
         run: gh workflow run --repo you54f/${{ matrix.repos }} build-and-test.yml --ref chore/upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }} -f PACT_FFI_VERSION=${{ needs.verify_release.outputs.PACT_FFI_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
+  watch_client_libraries:
+    needs: [verify_release,trigger_client_libraries]
+    strategy:
+      fail-fast: false
+      matrix:
+        repos:
+          [
+            # "you54f/pact-go",
+            # "you54f/pact-php",
+            # "you54f/pact-net",
+            "pact-js-core",
+          ]
+    runs-on: ubuntu-latest
+    steps:
       - name: get workflow id and watch workflow run
         run: |
-          gh run list --repo you54f/pact-js-core --json databaseId --branch chore/upgrade-to-pact-ffi-v0.4.16 --limit 1
           RUN_ID=$(gh run list --repo you54f/${{ matrix.repos }} --json databaseId --branch chore/upgrade-to-pact-ffi-v${{ needs.verify_release.outputs.PACT_FFI_VERSION }} --limit 1 | jq '.[].databaseId' )
           gh run watch --repo you54f/${{ matrix.repos }} $RUN_ID
         env:
