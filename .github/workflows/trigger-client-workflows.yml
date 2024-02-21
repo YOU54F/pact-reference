@@ -13,7 +13,7 @@ jobs:
         id: check
         run: |
           scripts/ci/check-release-libs.sh --list-assets
-          echo "PACT_FFI_VERSION=${GH_TAG_OPTION}" >> $GITHUB_ENV 
+          echo "PACT_FFI_VERSION=${PACT_FFI_VERSION}" >> $GITHUB_ENV 
         env:
           GITHUB_TOKEN: ${{ github.token }}
     outputs:

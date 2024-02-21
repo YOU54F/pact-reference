@@ -117,4 +117,5 @@ if [ ! -z "${ERRORS:-}" ]; then
     exit 1
 else
     echo "All release files are present"
+    export PACT_FFI_VERSION=$GH_TAG_OPTION
 fi
