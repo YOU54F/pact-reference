@@ -48,6 +48,7 @@ jobs:
           github_token: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
           workflow_file_name: build-and-test.yml
           wait_interval: 10
+          ref: master
           client_payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
           # propagate_failure: false
           # trigger_workflow: true
