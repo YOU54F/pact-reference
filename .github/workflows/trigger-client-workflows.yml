@@ -39,7 +39,7 @@ jobs:
             # "you54f/pact-go",
             # "you54f/pact-php",
             # "you54f/pact-net",
-            "pact-js-core",
+            "you54f/pact-js-core",
           ]
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +47,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           event-type: pact-ffi-released
-          repository: ${{ matrix.repos }}
+          repository: ${{ secrets.GH_TOKEN_PACT_FFI_CLIENT_LIBRARY_UPDATE }}
           token: ${{ github.token }}
           client-payload: '{ "version": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}","PACT_FFI_VERSION": "${{ needs.verify_release.outputs.PACT_FFI_VERSION }}", "PACT_FFI_REL_TAG": "${{ needs.verify_release.outputs.PACT_FFI_REL_TAG }}" }'
       - name: sleep for 30 seconds to allow for PR to be created
