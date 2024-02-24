@@ -16,7 +16,7 @@ strip = true  # Automatically strip symbols from the binary.
 opt-level = "z"  # Optimize for size.
 codegen-units = 1
 panic = "abort"
-lto = true
+# lto = true
 # https://github.com/johnthagen/min-sized-rust
 
 # Original Sizes
@@ -27,3 +27,60 @@ lto = true
 # libpactffi.dylib size 24M -> 9.4M
 # pact_verifier_cli size 19M -> 6.4M
 # pact_mock_server_cli size 19M -> 5.6M
+
+# no opts
+# 89M    ../target/release/libpact_ffi.a 
+# 28M    ../target/release/libpact_ffi.dylib
+
+# all opts
+# 136M    ../target/release/libpact_ffi.a
+# 9.6M    ../target/release/libpact_ffi.dylib
+
+# strip = true 
+#  89M    ../target/release/libpact_ffi.a
+#  20M    ../target/release/libpact_ffi.dylib
+
+# strip = true 
+# lto = true
+# 229M    ../target/release/libpact_ffi.a
+#  20M    ../target/release/libpact_ffi.dylib
+
+# strip = true 
+# codegen-units = 1
+#  58M    ../target/release/libpact_ffi.a
+#  16M    ../target/release/libpact_ffi.dylib
+
+# strip = true 
+# codegen-units = 1
+# opt-level = "z" 
+# 63M    ../target/release/libpact_ffi.a
+# 11M    ../target/release/libpact_ffi.dylib
+
+# strip = true 
+# codegen-units = 1
+# opt-level = "s" 
+#  64M    ../target/release/libpact_ffi.a
+#  14M    ../target/release/libpact_ffi.dylib
+
+# strip = true 
+# codegen-units = 1
+# panic = "abort"
+#  55M    ../target/release/libpact_ffi.a
+# 9.6M    ../target/release/libpact_ffi.dylib
+
+# codegen-units = 1
+# panic = "abort"
+#  50M    ../target/release/libpact_ffi.a
+#  15M    ../target/release/libpact_ffi.dylib
+
+# opt-level = "z"  # Optimize for size.
+# codegen-units = 1
+# panic = "abort"
+#  55M    ../target/release/libpact_ffi.a
+#  12K    ../target/release/libpact_ffi.d
+#  16M    ../target/release/libpact_ffi.dylib
+
+# strip = true  # Automatically strip symbols from the binary.
+# opt-level = "z"  # Optimize for size.
+# codegen-units = 1
+# panic = "abort"
