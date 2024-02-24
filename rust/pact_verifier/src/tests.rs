@@ -11,7 +11,6 @@ use expectest::prelude::*;
 use maplit::*;
 use pact_models::Consumer;
 use pact_models::pact::Pact;
-use pact_models::PACT_RUST_VERSION;
 use pact_models::provider_states::*;
 use pact_models::sync_interaction::RequestResponseInteraction;
 use pact_models::sync_pact::RequestResponsePact;
@@ -25,6 +24,7 @@ use crate::{NullRequestFilterExecutor, PactSource, ProviderInfo, ProviderStateEx
 use crate::callback_executors::HttpRequestProviderStateExecutor;
 use crate::pact_broker::Link;
 use crate::verification_result::VerificationInteractionResult;
+use crate::VERIFIER_VERSION;
 
 use super::{execute_state_change, filter_consumers, filter_interaction, FilterInfo};
 
@@ -273,7 +273,7 @@ fn publish_result_does_nothing_if_not_from_broker() {
         provider_tags: vec![],
         .. super::PublishOptions::default()
       };
-      super::publish_result(&vec![], &PactSource::File("/tmp/test".into()), &options).await;
+      super::publish_result(&vec![], &PactSource::File("/tmp/test".into()), &options, None).await;
     })
   });
   expect!(server_response).to(be_err());
@@ -293,7 +293,7 @@ async fn publish_successful_result_to_broker() {
         ],
         "verifiedBy": json!({
           "implementation": "Pact-Rust",
-          "version": PACT_RUST_VERSION
+          "version": VERIFIER_VERSION
         })
       }));
       i.response.status(201);
@@ -318,14 +318,15 @@ async fn publish_successful_result_to_broker() {
   
   let source = PactSource::BrokerUrl("Test".to_string(), server.url().to_string(), None, links.clone());
   publish_result(&[VerificationInteractionResult {
-    interaction_id: Some("1".to_string()),
-    interaction_key: None,
-    description: "".to_string(),
-    interaction_description: "".to_string(),
-    result: Ok(()),
-    pending: false,
-    duration: Default::default(),
-  }], &source, &options).await;
+      interaction_id: Some("1".to_string()),
+      interaction_key: None,
+      description: "".to_string(),
+      interaction_description: "".to_string(),
+      result: Ok(()),
+      pending: false,
+      duration: Default::default(),
+    }], &source, &options, None
+  ).await;
 
   // Same publish but with dynamic configuration as pact source:
   let source = PactSource::BrokerWithDynamicConfiguration {
@@ -340,14 +341,15 @@ async fn publish_successful_result_to_broker() {
     links
   };
   super::publish_result(&[VerificationInteractionResult {
-    interaction_id: Some("1".to_string()),
-    interaction_key: None,
-    description: "".to_string(),
-    interaction_description: "".to_string(),
-    result: Ok(()),
-    pending: false,
-    duration: Default::default(),
-  }], &source, &options).await;
+      interaction_id: Some("1".to_string()),
+      interaction_key: None,
+      description: "".to_string(),
+      interaction_description: "".to_string(),
+      result: Ok(()),
+      pending: false,
+      duration: Default::default(),
+    }], &source, &options, None
+  ).await;
 }
 
 #[test]
@@ -1023,7 +1025,7 @@ async fn test_publish_results_from_url_source_with_provider_branch() {
   };
   let verification_result = vec![];
 
-  publish_result(&verification_result, &source, &options).await;
+  publish_result(&verification_result, &source, &options, None).await;
 }
 
 #[test_log::test(tokio::test)]

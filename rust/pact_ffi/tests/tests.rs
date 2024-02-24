@@ -53,6 +53,7 @@ use pact_ffi::mock_server::handles::{
   pactffi_with_request,
   pactffi_write_message_pact_file
 };
+use pact_ffi::mock_server::handles::{pact_default_file_name, pactffi_free_pact_handle, pactffi_given_with_params, pactffi_pact_handle_write_file, pactffi_with_header_v2, PactHandle};
 use pact_ffi::verifier::{
   OptionsFlags,
   pactffi_verifier_add_directory_source,
@@ -246,11 +247,14 @@ fn http_consumer_feature_test() {
   let request_body_with_matchers = CString::new("{\"id\": {\"value\":1,\"pact:matcher:type\":\"type\"}}").unwrap();
   let response_body_with_matchers = CString::new("{\"created\": {\"value\":\"maybe\",\"pact:matcher:type\":\"regex\", \"regex\":\"(yes|no|maybe)\"}}").unwrap();
   let address = CString::new("127.0.0.1:0").unwrap();
-  let file_path = CString::new("/tmp/pact").unwrap();
   let description = CString::new("a request to test the FFI interface").unwrap();
   let method = CString::new("POST").unwrap();
   let query =  CString::new("foo").unwrap();
   let header = CString::new("application/json").unwrap();
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
 
   pactffi_upon_receiving(interaction.clone(), description.as_ptr());
   pactffi_with_request(interaction.clone(), method  .as_ptr(), path_matcher.as_ptr());
@@ -311,11 +315,14 @@ fn http_xml_consumer_feature_test() {
   let content_type = CString::new("Content-Type").unwrap();
   let response_body_with_matchers = CString::new(r#"{"version":"1.0","charset":"UTF-8","root":{"name":"ns1:projects","children":[{"pact:matcher:type":"type","value":{"name":"ns1:project","children":[{"name":"ns1:tasks","children":[{"pact:matcher:type":"type","value":{"name":"ns1:task","children":[],"attributes":{"id":{"pact:matcher:type":"integer","value":1},"name":{"pact:matcher:type":"type","value":"Task 1"},"done":{"pact:matcher:type":"type","value":true}}},"examples":5}],"attributes":{}}],"attributes":{"id":{"pact:matcher:type":"integer","value":1},"type":"activity","name":{"pact:matcher:type":"type","value":"Project 1"}}},"examples":2}],"attributes":{"id":"1234","xmlns:ns1":"http://some.namespace/and/more/stuff"}}}"#).unwrap();
   let address = CString::new("127.0.0.1:0").unwrap();
-  let file_path = CString::new("/tmp/pact").unwrap();
   let description = CString::new("a request to test the FFI interface").unwrap();
   let method = CString::new("GET").unwrap();
   let path = CString::new("/xml").unwrap();
   let header = CString::new("application/xml").unwrap();
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
 
   pactffi_upon_receiving(interaction.clone(), description.as_ptr());
   pactffi_with_request(interaction.clone(), method.as_ptr(), path.as_ptr());
@@ -366,9 +373,12 @@ fn message_consumer_feature_test() {
   let metadata_key = CString::new("message-queue-name").unwrap();
   let metadata_val = CString::new("message-queue-val").unwrap();
   let request_body_with_matchers = CString::new("{\"id\": {\"value\":1,\"pact:matcher:type\":\"type\"}}").unwrap();
-  let file_path = CString::new("/tmp/pact").unwrap();
   let given = CString::new("a functioning FFI interface").unwrap();
   let receive_description = CString::new("a request to test the FFI interface").unwrap();
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
 
   let message_pact_handle = pactffi_new_message_pact(consumer_name.as_ptr(), provider_name.as_ptr());
   let message_handle = pactffi_new_message(message_pact_handle.clone(), description.as_ptr());
@@ -393,9 +403,12 @@ fn message_xml_consumer_feature_test() {
   let metadata_key = CString::new("message-queue-name").unwrap();
   let metadata_val = CString::new("message-queue-val").unwrap();
   let request_body_with_matchers = CString::new(r#"{"version":"1.0","charset":"UTF-8","root":{"name":"ns1:projects","children":[{"pact:matcher:type":"type","value":{"name":"ns1:project","children":[{"name":"ns1:tasks","children":[{"pact:matcher:type":"type","value":{"name":"ns1:task","children":[],"attributes":{"id":{"pact:matcher:type":"integer","value":1},"name":{"pact:matcher:type":"type","value":"Task 1"},"done":{"pact:matcher:type":"type","value":true}}},"examples":5}],"attributes":{}}],"attributes":{"id":{"pact:matcher:type":"integer","value":1},"type":"activity","name":{"pact:matcher:type":"type","value":"Project 1"}}},"examples":2}],"attributes":{"id":"1234","xmlns:ns1":"http://some.namespace/and/more/stuff"}}}"#).unwrap();
-  let file_path = CString::new("/tmp/pact").unwrap();
   let given = CString::new("a functioning FFI interface").unwrap();
   let receive_description = CString::new("a request to test the FFI interface").unwrap();
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
 
   let message_pact_handle = pactffi_new_message_pact(consumer_name.as_ptr(), provider_name.as_ptr());
   let message_handle = pactffi_new_message(message_pact_handle.clone(), description.as_ptr());
@@ -420,9 +433,12 @@ fn message_consumer_with_matchers_and_generators_test() {
   let metadata_key = CString::new("message-queue-name").unwrap();
   let metadata_val = CString::new("{\"pact:generator:type\":\"RandomString\",\"value\":\"some text\",\"pact:matcher:type\":\"type\"}").unwrap();
   let request_body_with_matchers = CString::new("{\"id\": {\"pact:generator:type\":\"RandomInt\",\"min\":1,\"pact:matcher:type\":\"integer\"}}").unwrap();
-  let file_path = CString::new("/tmp/pact").unwrap();
   let given = CString::new("a functioning FFI interface").unwrap();
   let receive_description = CString::new("a request to test the FFI interface").unwrap();
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
 
   let message_pact_handle = pactffi_new_message_pact(consumer_name.as_ptr(), provider_name.as_ptr());
   let message_handle = pactffi_new_message(message_pact_handle.clone(), description.as_ptr());
@@ -483,9 +499,12 @@ fn pactffi_with_binary_file_feature_test(specification: PactSpecification, expec
   let content_type = CString::new("image/gif").unwrap();
   let path = CString::new("/upload").unwrap();
   let address = CString::new("127.0.0.1:0").unwrap();
-  let file_path = CString::new("/tmp/pact").unwrap();
   let description = CString::new("a request to test the FFI interface").unwrap();
   let method = CString::new("POST").unwrap();
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
 
   let mut buffer = Vec::new();
   let gif_file = fixture_path("1px.gif");
@@ -642,7 +661,9 @@ fn each_value_matcher() {
 
   expect!(mismatches).to(be_equal_to("[]"));
 
-  let file_path = CString::new("/tmp/pact").unwrap();
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
   pactffi_write_pact_file(port, file_path.as_ptr(), true);
   pactffi_cleanup_mock_server(port);
 }
@@ -842,4 +863,230 @@ fn multiple_query_values_with_regex_matcher() {
   pactffi_cleanup_mock_server(port);
 
   expect!(mismatches).to(be_equal_to("[]"));
+}
+
+// Issue #389
+#[test_log::test]
+fn merging_pact_file() {
+  let pact_handle = PactHandle::new("MergingPactC", "MergingPactP");
+  pactffi_with_specification(pact_handle, PactSpecification::V4);
+
+  let description = CString::new("a request for an order with an unknown ID").unwrap();
+  let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+  let path = CString::new("/api/orders/404").unwrap();
+  let method = CString::new("GET").unwrap();
+  let result_1 = pactffi_with_request(i_handle, method.as_ptr(), path.as_ptr());
+
+  let accept = CString::new("Accept").unwrap();
+  let header = CString::new("application/json").unwrap();
+  let result_2 = pactffi_with_header_v2(i_handle, InteractionPart::Request, accept.as_ptr(), 0, header.as_ptr());
+
+  let result_3 = pactffi_response_status(i_handle, 200);
+
+  let tmp = tempfile::tempdir().unwrap();
+  let tmp_dir = CString::new(tmp.path().to_string_lossy().as_bytes().to_vec()).unwrap();
+  let result_4 = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), false);
+
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, accept.as_ptr(), 0, header.as_ptr());
+  let result_5 = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), false);
+
+  let x_test = CString::new("X-Test").unwrap();
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, x_test.as_ptr(), 0, header.as_ptr());
+  let result_6 = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), false);
+
+  let pact_file = pact_default_file_name(&pact_handle);
+  pactffi_free_pact_handle(pact_handle);
+
+  expect!(result_1).to(be_true());
+  expect!(result_2).to(be_true());
+  expect!(result_3).to(be_true());
+  expect!(result_4).to(be_equal_to(0));
+  expect!(result_5).to(be_equal_to(0));
+  expect!(result_6).to(be_equal_to(0));
+
+  let pact_path = tmp.path().join(pact_file.unwrap());
+  let f= File::open(pact_path).unwrap();
+
+  let mut json: Value = serde_json::from_reader(f).unwrap();
+  json["metadata"] = Value::Null;
+  assert_eq!(serde_json::to_string_pretty(&json).unwrap(),
+  r#"{
+  "consumer": {
+    "name": "MergingPactC"
+  },
+  "interactions": [
+    {
+      "description": "a request for an order with an unknown ID",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "X-Test": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/orders/404"
+      },
+      "response": {
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": null,
+  "provider": {
+    "name": "MergingPactP"
+  }
+}"#
+  );
+}
+
+// Issue #389
+#[test_log::test]
+fn repeated_interaction() {
+  let pact_handle = PactHandle::new("MergingPactC2", "MergingPactP2");
+  pactffi_with_specification(pact_handle, PactSpecification::V4);
+
+  let description = CString::new("a request for an order with an unknown ID").unwrap();
+  let path = CString::new("/api/orders/404").unwrap();
+  let method = CString::new("GET").unwrap();
+  let accept = CString::new("Accept").unwrap();
+  let header = CString::new("application/json").unwrap();
+
+  let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+  pactffi_with_request(i_handle, method.as_ptr(), path.as_ptr());
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, accept.as_ptr(), 0, header.as_ptr());
+  pactffi_response_status(i_handle, 200);
+
+  let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+  pactffi_with_request(i_handle, method.as_ptr(), path.as_ptr());
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, accept.as_ptr(), 0, header.as_ptr());
+  pactffi_response_status(i_handle, 200);
+
+  let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+  pactffi_with_request(i_handle, method.as_ptr(), path.as_ptr());
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, accept.as_ptr(), 0, header.as_ptr());
+  pactffi_response_status(i_handle, 200);
+
+  let tmp = tempfile::tempdir().unwrap();
+  let tmp_dir = CString::new(tmp.path().to_string_lossy().as_bytes().to_vec()).unwrap();
+  let result = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), false);
+
+  let pact_file = pact_default_file_name(&pact_handle);
+  pactffi_free_pact_handle(pact_handle);
+
+  expect!(result).to(be_equal_to(0));
+
+  let pact_path = tmp.path().join(pact_file.unwrap());
+  let f= File::open(pact_path).unwrap();
+
+  let mut json: Value = serde_json::from_reader(f).unwrap();
+  json["metadata"] = Value::Null;
+  assert_eq!(serde_json::to_string_pretty(&json).unwrap(),
+  r#"{
+  "consumer": {
+    "name": "MergingPactC2"
+  },
+  "interactions": [
+    {
+      "description": "a request for an order with an unknown ID",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/orders/404"
+      },
+      "response": {
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": null,
+  "provider": {
+    "name": "MergingPactP2"
+  }
+}"#
+  );
+}
+
+// Issue #298
+#[test_log::test]
+fn provider_states_ignoring_parameter_types() {
+  let pact_handle = PactHandle::new("PSIPTC", "PSIPTP");
+  pactffi_with_specification(pact_handle, PactSpecification::V4);
+
+  let description = CString::new("an order with ID {id} exists").unwrap();
+  let path = CString::new("/api/orders/404").unwrap();
+  let method = CString::new("GET").unwrap();
+  let accept = CString::new("Accept").unwrap();
+  let header = CString::new("application/json").unwrap();
+  let state_params = CString::new(r#"{"id": "1"}"#).unwrap();
+
+  let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+  pactffi_with_request(i_handle, method.as_ptr(), path.as_ptr());
+  pactffi_given_with_params(i_handle, description.as_ptr(), state_params.as_ptr());
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, accept.as_ptr(), 0, header.as_ptr());
+  pactffi_response_status(i_handle, 200);
+
+  let tmp = tempfile::tempdir().unwrap();
+  let tmp_dir = CString::new(tmp.path().to_string_lossy().as_bytes().to_vec()).unwrap();
+  let result = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), false);
+
+  let pact_file = pact_default_file_name(&pact_handle);
+  pactffi_free_pact_handle(pact_handle);
+
+  expect!(result).to(be_equal_to(0));
+
+  let pact_path = tmp.path().join(pact_file.unwrap());
+  let f= File::open(pact_path).unwrap();
+
+  let mut json: Value = serde_json::from_reader(f).unwrap();
+  json["metadata"] = Value::Null;
+  assert_eq!(serde_json::to_string_pretty(&json).unwrap(),
+  r#"{
+  "consumer": {
+    "name": "PSIPTC"
+  },
+  "interactions": [
+    {
+      "description": "an order with ID {id} exists",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an order with ID {id} exists",
+          "params": {
+            "id": "1"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/orders/404"
+      },
+      "response": {
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": null,
+  "provider": {
+    "name": "PSIPTP"
+  }
+}"#
+  );
 }

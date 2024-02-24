@@ -428,7 +428,15 @@ ffi_fn! {
   }
 }
 
-/// Creates a new HTTP Interaction and returns a handle to it.
+fn find_interaction_with_description(pact: &V4Pact, description: &str) -> Option<usize> {
+  pact.interactions.iter().find_position(|i| {
+    i.description() == description
+  }).map(|(index, _)| index)
+}
+
+/// Creates a new HTTP Interaction and returns a handle to it. Calling this function with the
+/// same description as an existing interaction will result in that interaction being replaced
+/// with the new one.
 ///
 /// * `description` - The interaction description. It needs to be unique for each interaction.
 ///
@@ -441,15 +449,24 @@ pub extern fn pactffi_new_interaction(pact: PactHandle, description: *const c_ch
         description: description.to_string(),
         ..SynchronousHttp::default()
       };
-      inner.pact.interactions.push(interaction.boxed_v4());
-      InteractionHandle::new(pact, inner.pact.interactions.len() as u16)
+      if let Some(index) = find_interaction_with_description(&inner.pact, description) {
+        warn!("There is an existing interaction with description '{}', it will be replaced", description);
+        inner.pact.interactions[index] = interaction.boxed_v4();
+        InteractionHandle::new(pact, (index + 1) as u16)
+      } else {
+        inner.pact.interactions.push(interaction.boxed_v4());
+        InteractionHandle::new(pact, inner.pact.interactions.len() as u16)
+      }
     }).unwrap_or_else(|| InteractionHandle::new(pact, 0))
   } else {
     InteractionHandle::new(pact, 0)
   }
 }
 
-/// Creates a new message interaction and return a handle to it
+/// Creates a new message interaction and returns a handle to it. Calling this function with the
+/// same description as an existing interaction will result in that interaction being replaced
+/// with the new one.
+///
 /// * `description` - The interaction description. It needs to be unique for each interaction.
 ///
 /// Returns a new `InteractionHandle`.
@@ -461,15 +478,24 @@ pub extern fn pactffi_new_message_interaction(pact: PactHandle, description: *co
         description: description.to_string(),
         ..AsynchronousMessage::default()
       };
-      inner.pact.interactions.push(interaction.boxed_v4());
-      InteractionHandle::new(pact, inner.pact.interactions.len() as u16)
+      if let Some(index) = find_interaction_with_description(&inner.pact, description) {
+        warn!("There is an existing interaction with description '{}', it will be replaced", description);
+        inner.pact.interactions[index] = interaction.boxed_v4();
+        InteractionHandle::new(pact, (index + 1) as u16)
+      } else {
+        inner.pact.interactions.push(interaction.boxed_v4());
+        InteractionHandle::new(pact, inner.pact.interactions.len() as u16)
+      }
     }).unwrap_or_else(|| InteractionHandle::new(pact, 0))
   } else {
     InteractionHandle::new(pact, 0)
   }
 }
 
-/// Creates a new synchronous message interaction (request/response) and return a handle to it
+/// Creates a new synchronous message interaction (request/response) and returns a handle to it.
+/// Calling this function with the same description as an existing interaction will result in
+/// that interaction being replaced with the new one.
+///
 /// * `description` - The interaction description. It needs to be unique for each interaction.
 ///
 /// Returns a new `InteractionHandle`.
@@ -481,8 +507,14 @@ pub extern fn pactffi_new_sync_message_interaction(pact: PactHandle, description
         description: description.to_string(),
         ..SynchronousMessage::default()
       };
-      inner.pact.interactions.push(interaction.boxed_v4());
-      InteractionHandle::new(pact, inner.pact.interactions.len() as u16)
+      if let Some(index) = find_interaction_with_description(&inner.pact, description) {
+        warn!("There is an existing interaction with description '{}', it will be replaced", description);
+        inner.pact.interactions[index] = interaction.boxed_v4();
+        InteractionHandle::new(pact, (index + 1) as u16)
+      } else {
+        inner.pact.interactions.push(interaction.boxed_v4());
+        InteractionHandle::new(pact, inner.pact.interactions.len() as u16)
+      }
     }).unwrap_or_else(|| InteractionHandle::new(pact, 0))
   } else {
     InteractionHandle::new(pact, 0)
@@ -1000,7 +1032,7 @@ fn from_integration_json_v2(
       _ => Either::Left(value.to_string())
     },
     Err(err) => {
-      error!("Failed to parse the value: {}", err);
+      warn!("Failed to parse the value, treating it as a plain string: {}", err);
       Either::Left(value.to_string())
     }
   }
@@ -2391,7 +2423,7 @@ pub extern fn pactffi_message_reify(message_handle: MessageHandle) -> *const c_c
 pub extern fn pactffi_write_message_pact_file(pact: MessagePactHandle, directory: *const c_char, overwrite: bool) -> i32 {
   let result = pact.with_pact(&|_, inner, spec_version| {
     let filename = path_from_dir(directory, Some(inner.default_file_name().as_str()));
-    write_pact(inner.boxed(), &filename.unwrap(), spec_version, overwrite)
+    write_pact(inner.boxed(), &filename.unwrap_or_else(|| PathBuf::from(inner.default_file_name().as_str())), spec_version, overwrite)
   });
 
   match result {
@@ -2558,6 +2590,13 @@ pub extern fn pactffi_free_pact_handle(pact: PactHandle) -> c_uint {
 pub extern fn pactffi_free_message_pact_handle(pact: MessagePactHandle) -> c_uint {
   let mut handles = PACT_HANDLES.lock().unwrap();
   handles.remove(&pact.pact_ref).map(|_| 0).unwrap_or(1)
+}
+
+/// Returns the default file name for a Pact handle
+pub fn pact_default_file_name(handle: &PactHandle) -> Option<String> {
+  handle.with_pact(&|_, inner| {
+    inner.pact.default_file_name()
+  })
 }
 
 #[cfg(test)]

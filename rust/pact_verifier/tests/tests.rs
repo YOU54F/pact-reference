@@ -427,6 +427,7 @@ async fn verify_multiple_pacts() {
           "testResults": [
             {
               "interactionId": "pact-one",
+              "interactionDescription": like!("description"),
               "mismatches": [
                 {
                   "attribute": "body",
@@ -458,6 +459,7 @@ async fn verify_multiple_pacts() {
           "testResults": [
             {
               "interactionId": "pact-two",
+              "interactionDescription": like!("description"),
               "mismatches": [
                 {
                   "attribute": "header",
@@ -647,10 +649,12 @@ async fn verify_message_pact_with_two_interactions() {
           "testResults": [
             {
               "interactionId": "message-one",
+              "interactionDescription": like!("description"),
               "success": true
             },
             {
               "interactionId": "message-two",
+              "interactionDescription": like!("description"),
               "mismatches": [
                 {
                   "attribute":"body",
@@ -947,4 +951,50 @@ async fn broker_validation_errors_should_be_shown_to_the_user() {
   let message = error_json.as_object().unwrap().get("message").unwrap();
   let message_str = message.to_string();
   expect!(message_str.contains("consumerVersionSelectors: cannot specify the fields branch/latest with the field deployedOrReleased (at index 0)")).to(be_true());
+}
+
+#[test_log::test(tokio::test)]
+async fn verify_pact_with_body_but_no_content_type() {
+  let server = PactBuilder::new_v4("no content-type", "no content-type")
+    .interaction("request with no content-type", "", |mut i| {
+      i.test_name("verify_pact_with_body_but_no_content_type");
+      i.request.method("POST");
+      i.request.path("/endpoint");
+      i.request.body(r#"{ "this": "field" }"#);
+
+      i.response.ok();
+      i
+    })
+    .start_mock_server(None);
+
+  #[allow(deprecated)]
+    let provider = ProviderInfo {
+    name: "no content-type".to_string(),
+    host: "127.0.0.1".to_string(),
+    port: server.url().port(),
+    transports: vec![ ProviderTransport {
+      transport: "HTTP".to_string(),
+      port: server.url().port(),
+      path: None,
+      scheme: Some("http".to_string())
+    } ],
+    .. ProviderInfo::default()
+  };
+
+  let pact_file = fixture_path("no-content-type.json");
+  let pact = read_pact(pact_file.as_path()).unwrap();
+  let options: VerificationOptions<NullRequestFilterExecutor> = VerificationOptions::default();
+  let provider_states = Arc::new(DummyProviderStateExecutor{});
+
+  let result = verify_pact_internal(
+    &provider,
+    &FilterInfo::None,
+    pact,
+    &options,
+    &provider_states,
+    false,
+    Duration::default()
+  ).await;
+
+  expect!(result.unwrap().results.get(0).unwrap().result.as_ref()).to(be_ok());
 }
