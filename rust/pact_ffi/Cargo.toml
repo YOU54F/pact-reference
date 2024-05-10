@@ -68,3 +68,9 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 
 [build-dependencies]
 os_info = { version = "3.7.0", default-features = false }
+
+[profile.release]
+strip = true
+opt-level = "z"
+codegen-units = 1
+lto = true

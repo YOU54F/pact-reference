@@ -44,3 +44,9 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "tracing-lo
 [dev-dependencies]
 expectest = "0.12.0"
 trycmd = "0.15.0"
+
+[profile.release]
+strip = true
+opt-level = "z"
+codegen-units = 1
+lto = true
