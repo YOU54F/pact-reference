@@ -109,7 +109,7 @@ EOM
             "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/aarch64-unknown-linux-musl/release/libpact_ffi.a" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-aarch64-musl.a.gz"
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/release/libpact_ffi.so" \
+            "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/aarch64-unknown-linux-musl/release/libpact_ffi.so" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-aarch64-musl.so.gz"
     fi
 }
