@@ -17,4 +17,3 @@ onig = { git = "https://github.com/rust-onig/rust-onig", default-features = fals
 strip = true
 opt-level = "z"
 codegen-units = 1
-lto = true
