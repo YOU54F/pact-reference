@@ -74,7 +74,7 @@ jobs:
           if [[ "${{ github.event_name }}" = "release" ]]; then
             echo "flags=--release" >> "$GITHUB_OUTPUT"
           else
-            echo "flags=" >> "$GITHUB_OUTPUT"
+            echo "flags=--release" >> "$GITHUB_OUTPUT"
           fi
 
       # - name: Build mock server CLI
