@@ -8,7 +8,7 @@ RUST_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd )"
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-export CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+export TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
 
 # All flags passed to this script are passed to cargo.
 cargo_flags=( "$@" )
@@ -21,10 +21,10 @@ build_x86_64_gnu() {
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/release/libpact_ffi.a" \
+            "$TARGET_DIR/x86_64-unknown-linux-gnu/release/libpact_ffi.a" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-x86_64.a.gz"
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/release/libpact_ffi.so" \
+            "$TARGET_DIR/x86_64-unknown-linux-gnu/release/libpact_ffi.so" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-x86_64.so.gz"
     fi
 }
@@ -49,15 +49,15 @@ EOM
         docker run \
             --platform=linux/amd64 \
             --rm \
-            -v "$CARGO_TARGET_DIR/x86_64-unknown-linux-musl/release:/scratch" \
+            -v "$TARGET_DIR/x86_64-unknown-linux-musl/release:/scratch" \
             alpine \
             /bin/sh -c "$BUILD_SCRIPT"
 
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/x86_64-unknown-linux-musl/release/libpact_ffi.a" \
+            "$TARGET_DIR/x86_64-unknown-linux-musl/release/libpact_ffi.a" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-x86_64-musl.a.gz"
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/x86_64-unknown-linux-musl/release/libpact_ffi.so" \
+            "$TARGET_DIR/x86_64-unknown-linux-musl/release/libpact_ffi.so" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-x86_64-musl.so.gz"
     fi
 }
@@ -73,10 +73,10 @@ build_aarch64_gnu() {
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/aarch64-unknown-linux-gnu/release/libpact_ffi.a" \
+            "$TARGET_DIR/aarch64-unknown-linux-gnu/release/libpact_ffi.a" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-aarch64.a.gz"
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/aarch64-unknown-linux-gnu/release/libpact_ffi.so" \
+            "$TARGET_DIR/aarch64-unknown-linux-gnu/release/libpact_ffi.so" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-aarch64.so.gz"
     fi
 }
@@ -101,15 +101,15 @@ EOM
         docker run \
             --platform=linux/arm64 \
             --rm \
-            -v "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/release:/scratch" \
+            -v "$TARGET_DIR/aarch64-unknown-linux-musl/release:/scratch" \
             alpine \
             /bin/sh -c "$BUILD_SCRIPT"
 
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/release/libpact_ffi.a" \
+            "$TARGET_DIR/aarch64-unknown-linux-musl/release/libpact_ffi.a" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-aarch64-musl.a.gz"
         gzip_and_sum \
-            "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/release/libpact_ffi.so" \
+            "$TARGET_DIR/aarch64-unknown-linux-musl/release/libpact_ffi.so" \
             "$ARTIFACTS_DIR/libpact_ffi-linux-aarch64-musl.so.gz"
     fi
 }
