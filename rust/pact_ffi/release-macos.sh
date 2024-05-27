@@ -21,6 +21,8 @@ build_x86_64() {
     cargo build --target x86_64-apple-darwin "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
+        strip "$CARGO_TARGET_DIR/x86_64-apple-darwin/release/libpact_ffi.dylib"
+        strip "$CARGO_TARGET_DIR/x86_64-apple-darwin/release/libpact_ffi.a"
         gzip_and_sum \
             "$CARGO_TARGET_DIR/x86_64-apple-darwin/release/libpact_ffi.dylib" \
             "$ARTIFACTS_DIR/libpact_ffi-osx-x86_64.dylib.gz"
@@ -41,6 +43,8 @@ build_aarch64() {
     cargo build --target aarch64-apple-darwin "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
+        strip "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/libpact_ffi.dylib"
+        strip "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/libpact_ffi.a"
         gzip_and_sum \
             "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/libpact_ffi.dylib" \
             "$ARTIFACTS_DIR/libpact_ffi-osx-aarch64-apple-darwin.dylib.gz"
