@@ -641,7 +641,6 @@ fn fixture_path(path: &str) -> PathBuf {
     .to_owned()
 }
 
-// #[cfg(not(windows))]
 #[rstest(
   specification,                                          expected_value,
   case::specification_unknown(PactSpecification::Unknown, false),
