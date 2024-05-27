@@ -2022,14 +2022,14 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-subscriber",
- "tree_magic_mini",
+ "tree_magic_mini 3.1.4 (git+https://github.com/YOU54F/tree_magic.git?branch=mini)",
  "uuid",
 ]
 
 [[package]]
 name = "pact_matching"
 version = "1.2.3"
-source = "git+https://github.com/you54f/pact-reference.git#7329e078a7e4180d4ca0ac8f24e9186bf83698f2"
+source = "git+https://github.com/you54f/pact-reference.git#5e363b9447e4b929fe3614940f23a6a8fd556310"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -2040,6 +2040,7 @@ dependencies = [
  "futures",
  "hex",
  "http 1.1.0",
+ "infer",
  "itertools 0.12.1",
  "lazy_static",
  "lenient_semver",
@@ -2061,7 +2062,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-core",
- "tree_magic_mini",
+ "tree_magic_mini 3.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid",
 ]
 
@@ -3764,6 +3765,19 @@ name = "tree_magic_mini"
 version = "3.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ee137597cdb361b55a4746983e4ac1b35ab6024396a419944ad473bb915265"
+dependencies = [
+ "fnv",
+ "home",
+ "memchr",
+ "nom",
+ "once_cell",
+ "petgraph",
+]
+
+[[package]]
+name = "tree_magic_mini"
+version = "3.1.4"
+source = "git+https://github.com/YOU54F/tree_magic.git?branch=mini#f77cc2bcd3a920bed0225c6cb207c1af45b623e7"
 dependencies = [
  "fnv",
  "home",

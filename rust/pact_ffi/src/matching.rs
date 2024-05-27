@@ -363,7 +363,7 @@ mod tests {
     let rule_ptr = &rule as *const MatchingRule;
     let err_result = pactffi_matches_binary_value(rule_ptr, value, 35, value, 35, 0);
     let string = unsafe { CString::from_raw(err_result as *mut c_char) };
-    expect!(string.to_string_lossy()).to(be_equal_to("Expected binary contents to have content type 'image/png' but detected contents was 'image/gif'"));
+    expect!(string.to_string_lossy()).to(be_equal_to("Expected binary contents to have content type 'image/png' but inferred contents are 'image/gif', magic contents are 'image/gif'"));
   }
 
   #[test_log::test]

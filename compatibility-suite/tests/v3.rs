@@ -15,6 +15,7 @@ async fn main() {
     .init();
 
   V3World::cucumber()
+
     .fail_on_skipped()
     .filter_run_and_exit("pact-compatibility-suite/features/V3", |feature, _rule, scenario| {
       feature.tags.iter().all(|tag| tag != "provider" && tag != "message") &&
