@@ -29,7 +29,7 @@ EOM
         )
 
         docker run \
-            --platform=linux/arm64 \
+            --platform=linux/amd64 \
             --rm \
             -v "$TARGET_DIR/x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/release:/scratch" \
             debian \
@@ -84,7 +84,7 @@ install_cross_latest() {
 
 build_aarch64_gnu() {
     install_cross
-    # cargo clean
+    cargo clean
     cross build --target aarch64-unknown-linux-gnu --target-dir "$TARGET_DIR/aarch64-unknown-linux-gnu" "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
@@ -112,8 +112,8 @@ EOM
 }
 
 build_aarch64_musl() {
-    # cargo clean
-    # install_cross_latest
+    cargo clean
+    install_cross_latest
     RUSTFLAGS="-C target-feature=-crt-static" cross build --target aarch64-unknown-linux-musl --target-dir "$TARGET_DIR/aarch64-unknown-linux-musl" "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
@@ -154,7 +154,7 @@ build_header() {
 }
 
 build_x86_64_gnu
-# build_x86_64_musl
-# build_aarch64_gnu
-# build_aarch64_musl
-# build_header
+build_x86_64_musl
+build_aarch64_gnu
+build_aarch64_musl
+build_header
