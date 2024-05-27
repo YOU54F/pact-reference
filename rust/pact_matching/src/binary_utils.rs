@@ -1150,7 +1150,7 @@ mod tests {
 
     let mismatches = result.unwrap_err();
     expect!(mismatches.iter().map(|m| mismatch(m)).collect::<Vec<&str>>()).to(be_equal_to(vec![
-      "MIME part \'file\': Expected binary contents to have content type \'application/jpeg\' but detected contents was \'text/plain\'"
+      "MIME part \'file\': Expected binary contents to have content type \'application/jpeg\' but inferred contents are '', magic contents are 'text/plain'"
     ]));
   }
 
