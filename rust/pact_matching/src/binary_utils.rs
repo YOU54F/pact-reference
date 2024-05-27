@@ -1045,7 +1045,7 @@ mod tests {
 
   #[test]
   #[cfg(feature = "multipart")]
-  #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
+  // #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
   fn match_mime_multipart_content_type_matcher() {
     let expected_body = Bytes::from("--1234\r\n\
       Content-Type: text/plain\r\n\
@@ -1102,7 +1102,7 @@ mod tests {
 
   #[test]
   #[cfg(feature = "multipart")]
-  #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
+  // #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
   fn match_mime_multipart_content_type_matcher_with_mismatch() {
     let expected_body = Bytes::from("--1234\r\n\
       Content-Type: text/plain\r\n\
@@ -1156,7 +1156,7 @@ mod tests {
 
   #[test]
   #[cfg(feature = "multipart")]
-  #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
+  // #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
   fn match_content_type_equals() {
     expect!(match_content_type("some text".as_bytes(), "text/plain")).to(be_ok());
 
@@ -1169,7 +1169,7 @@ mod tests {
 
   #[test]
   #[cfg(feature = "multipart")]
-  #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
+  // #[cfg(not(target_os = "windows"))] // Requires shared mime-info db, not available on Windows
   fn match_content_type_common_text_types() {
     expect!(match_content_type("{\"val\": \"some text\"}".as_bytes(), "application/json")).to(be_ok());
     expect!(match_content_type("<xml version=\"1.0\"><a/>".as_bytes(), "application/xml")).to(be_ok());
