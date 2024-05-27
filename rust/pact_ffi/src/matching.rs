@@ -350,7 +350,6 @@ mod tests {
   ];
 
   #[test_log::test]
-  // #[cfg(not(windows))]
   fn pactffi_matches_binary_value_test() {
     let rule = MatchingRule::ContentType("image/gif".to_string());
     let rule_ptr = &rule as *const MatchingRule;
@@ -363,6 +362,7 @@ mod tests {
     let rule_ptr = &rule as *const MatchingRule;
     let err_result = pactffi_matches_binary_value(rule_ptr, value, 35, value, 35, 0);
     let string = unsafe { CString::from_raw(err_result as *mut c_char) };
+    // required if shared-mime-info not installed, not installed on windows easily
     #[cfg(not(windows))]
     let magic_content_type = "image/gif";
     #[cfg(windows)]

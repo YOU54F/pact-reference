@@ -897,6 +897,7 @@ fn compare_bodies_core_should_check_for_content_type_matcher() {
   );
 
   let result = compare_bodies_core(&content_type, &expected, &actual, &context);
+  // required if shared-mime-info not installed, not installed on windows easily
   #[cfg(not(windows))]
   let magic_content_type = "image/gif";
   #[cfg(windows)]

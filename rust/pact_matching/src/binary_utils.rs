@@ -52,9 +52,10 @@ where
     let magic_match = magic_content_type == expected;
     debug!("Matching binary contents by content type: expected '{}', detection method: tree_magic_mini '{}' -> {}",
   expected, magic_content_type, magic_match);
-    if magic_match {
+    if magic_match && magic_content_type != "text/plain" {
         return Ok(());
     }
+    // this assumes user is expecting text/plain but is actually getting text
     if inferred_content_type == "text/plain" || magic_content_type == "text/plain" {
         let bytes_detected_content_type = detect_content_type_from_bytes(data);
         if bytes_detected_content_type.is_some() {
