@@ -71,11 +71,7 @@ jobs:
         id: cargo-flags
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" = "release" ]]; then
-            echo "flags=--release" >> "$GITHUB_OUTPUT"
-          else
-            echo "flags=" >> "$GITHUB_OUTPUT"
-          fi
+          echo "flags=--release" >> "$GITHUB_OUTPUT"
 
 
       - name: Build verifier CLI
