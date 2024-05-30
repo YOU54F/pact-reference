@@ -3,19 +3,19 @@
 set -e
 set -x
 
-RUST_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd )"
+RUST_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-export CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
 
 # All flags passed to this script are passed to cargo.
-cargo_flags=( "$@" )
+cargo_flags=("$@")
 
 # Build the x86_64 windows release
 build_x86_64() {
-    cargo build --target x86_64-pc-windows-msvc "${cargo_flags[@]}"
+    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target x86_64-pc-windows-msvc "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
@@ -26,7 +26,7 @@ build_x86_64() {
 
 # Build the aarch64 windows release
 build_aarch64() {
-    cargo build --target aarch64-pc-windows-msvc "${cargo_flags[@]}"
+    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target aarch64-pc-windows-msvc "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
