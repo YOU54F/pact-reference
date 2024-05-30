@@ -29,7 +29,7 @@ install_cross() {
     cargo install cross@0.2.5 --force
 }
 install_cross_latest() {
-    cargo install cross --force
+    cargo install cross --git https://github.com/cross-rs/cross --force
 }
 clean_cargo_release_build() {
     rm -rf $CARGO_TARGET_DIR/release/build
@@ -47,5 +47,5 @@ build_aarch64() {
 
 install_cross
 build_x86_64
-# install_cross_latest
+install_cross_latest
 build_aarch64

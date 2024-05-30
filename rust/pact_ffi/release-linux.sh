@@ -47,7 +47,7 @@ install_cross() {
     cargo install cross@0.2.5 --force
 }
 install_cross_latest() {
-    cargo install cross --force
+    cargo install cross --git https://github.com/cross-rs/cross --force
 }
 clean_cargo_release_build() {
     rm -rf $CARGO_TARGET_DIR/release/build
@@ -93,10 +93,10 @@ build_header() {
         --output "$ARTIFACTS_DIR/pact-cpp.h"
 }
 
-# install_cross
-# build_x86_64_gnu
-# build_x86_64_musl
-# build_aarch64_gnu
+install_cross
+build_x86_64_gnu
+build_x86_64_musl
+build_aarch64_gnu
 # install_cross_latest
-# build_aarch64_musl
+build_aarch64_musl
 build_header
