@@ -18,7 +18,7 @@ cargo_flags=("$@")
 
 # Build the x86_64 darwin release
 build_x86_64() {
-    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target x86_64-apple-darwin "${cargo_flags[@]}"
+    RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target x86_64-apple-darwin "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
@@ -32,7 +32,7 @@ build_x86_64() {
 
 # Build the aarch64 darwin release
 build_aarch64() {
-    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target aarch64-apple-darwin "${cargo_flags[@]}"
+    RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --bin pact_verifier_cli --target aarch64-apple-darwin "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
@@ -45,4 +45,4 @@ build_aarch64() {
 }
 
 build_x86_64
-build_aarch64
+# build_aarch64

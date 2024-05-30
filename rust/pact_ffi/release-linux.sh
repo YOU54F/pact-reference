@@ -93,10 +93,10 @@ build_header() {
         --output "$ARTIFACTS_DIR/pact-cpp.h"
 }
 
-install_cross
-build_x86_64_gnu
-build_x86_64_musl
-build_aarch64_gnu
-install_cross_latest
-build_aarch64_musl
+# install_cross
+# build_x86_64_gnu
+# build_x86_64_musl
+# build_aarch64_gnu
+# install_cross_latest
+# build_aarch64_musl
 build_header

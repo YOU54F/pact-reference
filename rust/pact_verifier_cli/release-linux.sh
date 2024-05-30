@@ -16,7 +16,7 @@ cargo_flags=("$@")
 build_x86_64() {
     # sudo apt-get install -y musl-tools
     clean_cargo_release_build
-    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cross build --target=x86_64-unknown-linux-musl "${cargo_flags[@]}"
+    RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" cross build --bin pact_verifier_cli --target=x86_64-unknown-linux-musl "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
@@ -37,7 +37,7 @@ clean_cargo_release_build() {
 
 build_aarch64() {
     clean_cargo_release_build
-    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cross build --target aarch64-unknown-linux-musl "${cargo_flags[@]}"
+    RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" cross build --bin pact_verifier_cli --target aarch64-unknown-linux-musl "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/release/pact_verifier_cli" \

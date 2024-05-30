@@ -15,7 +15,7 @@ cargo_flags=("$@")
 
 # Build the x86_64 windows release
 build_x86_64() {
-    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target x86_64-pc-windows-msvc "${cargo_flags[@]}"
+    RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target x86_64-pc-windows-msvc "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
@@ -26,7 +26,7 @@ build_x86_64() {
 
 # Build the aarch64 windows release
 build_aarch64() {
-    RUSTFLAGS="-C lto=true -C embed-bitcode=yes -C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target aarch64-pc-windows-msvc "${cargo_flags[@]}"
+    RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" cargo build --target aarch64-pc-windows-msvc "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
