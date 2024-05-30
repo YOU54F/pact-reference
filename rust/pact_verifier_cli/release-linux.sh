@@ -8,13 +8,26 @@ RUST_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd )"
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
+# Create slim builds for release
+RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
 
 # All flags passed to this script are passed to cargo.
 cargo_flags=( "$@" )
 
+install_cross() {
+    cargo install cross@0.2.5 --force
+}
+install_cross_latest() {
+    cargo install cross --git https://github.com/cross-rs/cross --force
+}
+clean_cargo_release_build() {
+    rm -rf $CARGO_TARGET_DIR/release/build
+}
+
 build_x86_64() {
-    sudo apt-get install -y musl-tools
+    # sudo apt-get install -y musl-tools
+    clean_cargo_release_build
     cargo build --target=x86_64-unknown-linux-musl "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
@@ -24,19 +37,24 @@ build_x86_64() {
     fi
 }
 
-install_cross() {
-    cargo install cross@0.2.5
-}
 
 build_aarch64() {
-    install_cross
+    clean_cargo_release_build
     cross build --target aarch64-unknown-linux-musl "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum "$CARGO_TARGET_DIR/aarch64-unknown-linux-musl/release/pact_verifier_cli" \
-        "$ARTIFACTS_DIR/pact_verifier_cli-linux-aarch64.gz"
+            "$ARTIFACTS_DIR/pact_verifier_cli-linux-aarch64.gz"
     fi
 }
 
+install_cross
 build_x86_64
+install_cross_latest
 build_aarch64
+
+
+# aarch64-unknown-linux-musl failing to build with cross 0.2.5
+# cant find crate for `time_macros`
+# /cargo/registry/src/index.crates.io-6f17d22bba15001f/time-0.3.36/src/macros.rs:132:9
+# pub use time_macros::time;

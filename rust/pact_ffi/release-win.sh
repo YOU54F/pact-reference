@@ -8,7 +8,9 @@ RUST_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd )"
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-export CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
+# Create slim builds for release
+RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
 
 # All flags passed to this script are passed to cargo.
 cargo_flags=( "$@" )

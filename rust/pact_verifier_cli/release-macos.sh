@@ -8,7 +8,9 @@ RUST_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd )"
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-export CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
+# Create slim builds for release
+RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
 
 # We target the oldest supported version of macOS.
 export MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-12}
@@ -36,10 +38,10 @@ build_aarch64() {
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
-            "$CARGO_TARGET_DIR//aarch64-apple-darwin/release/pact_verifier_cli" \
+            "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/pact_verifier_cli" \
             "$ARTIFACTS_DIR/pact_verifier_cli-osx-aarch64.gz"
         gzip_and_sum \
-            "$CARGO_TARGET_DIR//aarch64-apple-darwin/release/pact_verifier_cli" \
+            "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/pact_verifier_cli" \
             "$ARTIFACTS_DIR/pact_verifier_cli-macos-aarch64.gz"
     fi
 }
