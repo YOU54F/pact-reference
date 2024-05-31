@@ -10,7 +10,7 @@ ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
 export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
 # Create slim builds for release
-RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
+export RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
 
 # We target the oldest supported version of macOS.
 export MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-12}

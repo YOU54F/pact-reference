@@ -10,7 +10,7 @@ ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
 export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
 # Create slim builds for release
-RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" 
+export RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols" 
 
 # All flags passed to this script are passed to cargo.
 cargo_flags=( "$@" )
@@ -58,10 +58,10 @@ build_aarch64_gnu() {
 build_x86_64_musl() {
     clean_cargo_release_build
     # Set -crt-static, to build dynamic *.so library
-    RUSTFLAGS+="-C target-feature=-crt-static" 
+    export RUSTFLAGS+="-C target-feature=-crt-static" 
     cross build --target x86_64-unknown-linux-musl "${cargo_flags[@]}"
     # Unset -crt-static, to ensure
-    RUSTFLAGS="${RUSTFLAGS//-C target-feature=-crt-static}"
+    export RUSTFLAGS="${RUSTFLAGS//-C target-feature=-crt-static}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
@@ -75,9 +75,9 @@ build_x86_64_musl() {
 
 build_aarch64_musl() {
     clean_cargo_release_build
-    RUSTFLAGS+="-C target-feature=-crt-static" 
+    export RUSTFLAGS+="-C target-feature=-crt-static" 
     cross build --target aarch64-unknown-linux-musl "${cargo_flags[@]}"
-    RUSTFLAGS="${RUSTFLAGS//-C target-feature=-crt-static}"
+    export RUSTFLAGS="${RUSTFLAGS//-C target-feature=-crt-static}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \

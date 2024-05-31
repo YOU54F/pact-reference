@@ -10,7 +10,7 @@ ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
 # Create slim builds for release
-RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
+export RUSTFLAGS="-C opt-level=z -C codegen-units=1 -C strip=symbols ${RUSTFLAGS}"
 
 # All flags passed to this script are passed to cargo.
 cargo_flags=( "$@" )
