@@ -28,7 +28,7 @@ clean_cargo_release_build() {
 build_x86_64() {
     # sudo apt-get install -y musl-tools
     clean_cargo_release_build
-    cargo build --target=x86_64-unknown-linux-musl "${cargo_flags[@]}"
+    cross build --target=x86_64-unknown-linux-musl "${cargo_flags[@]}"
 
     if [[ "${cargo_flags[*]}" =~ "--release" ]]; then
         gzip_and_sum \
