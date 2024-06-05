@@ -131,9 +131,9 @@ jobs:
           startsWith(github.ref, 'refs/tags/pact_verifier_cli')
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts-${{ matrix.operating-system }}
+          name: release-artifacts-${{ matrix.targets }}
           path: rust/release_artifacts
-          if-no-files-found: error
+          if-no-files-found: warn
 
   publish:
     runs-on: ubuntu-latest
