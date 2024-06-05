@@ -9,7 +9,7 @@ APP_NAME=pact_ffi
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-export CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
 
 # All flags passed to this script are passed to cargo.
 case $1 in
@@ -21,8 +21,7 @@ aarch64-pc-windows-msvc)
     TARGET=$1
     shift
     ;;
-*)
-    ;;
+*) ;;
 esac
 cargo_flags=("$@")
 build_target() {

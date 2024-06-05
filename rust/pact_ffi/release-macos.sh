@@ -9,7 +9,7 @@ APP_NAME=libpact_ffi
 source "$RUST_DIR/scripts/gzip-and-sum.sh"
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"$RUST_DIR/release_artifacts"}
 mkdir -p "$ARTIFACTS_DIR"
-export CARGO_TARGET_DIR=${CARO_TARGET_DIR:-"$RUST_DIR/target"}
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$RUST_DIR/target"}
 
 # We target the oldest supported version of macOS.
 export MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-12}
