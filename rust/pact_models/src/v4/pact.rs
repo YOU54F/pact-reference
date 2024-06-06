@@ -367,16 +367,25 @@ impl ReadWritePact for V4Pact {
               (_, _) => {
                 let type_a = a.type_of();
                 let type_b = b.type_of();
-                let cmp = Ord::cmp(&type_a, &type_b);
-                if cmp == Ordering::Equal {
+                // println!("a.type: {}",type_a);
+                // println!("b.type: {}",type_b);
+                let cmp = Ord::cmp(&a.description(), &b.description());
+                // println!("a.description: {}",&a.description());
+                // println!("b.description: {}",&b.description());
+                if cmp == Ordering::Equal && !a.provider_states().is_empty() {
                   let cmp = Ord::cmp(&a.provider_states().iter().map(|p| p.name.clone()).collect::<Vec<String>>(),
-                                     &b.provider_states().iter().map(|p| p.name.clone()).collect::<Vec<String>>());
+                  &b.provider_states().iter().map(|p| p.name.clone()).collect::<Vec<String>>());
                   if cmp == Ordering::Equal {
-                    Ord::cmp(&a.description(), &b.description())
-                  } else {
+                       Ord::cmp(&type_a, &type_b)
+                  } else
+                  {
                     cmp
                   }
-                } else {
+                }
+                else if cmp == Ordering::Equal && a.provider_states().is_empty() {
+                  Ord::cmp(&type_a, &type_b)
+                } 
+                 else {
                   cmp
                 }
               }
@@ -941,6 +950,87 @@ mod tests {
       }},
       "response": {{
         "status": 400
+      }},
+      "type": "Synchronous/HTTP"
+    }}
+  ],
+  "metadata": {{
+    "pactRust": {{
+      "models": "{}"
+    }},
+    "pactSpecification": {{
+      "version": "4.0"
+    }}
+  }},
+  "provider": {{
+    "name": "write_pact_test_provider"
+  }}
+}}"#, PACT_RUST_VERSION.unwrap())));
+
+  }
+  #[test]
+  fn write_pact_test_should_merge_duplicate_pacts() {
+    let pact = V4Pact {
+      consumer: Consumer { name: "write_pact_test_consumer".into() },
+      provider: Provider { name: "write_pact_test_provider".into() },
+      interactions: vec![
+        Box::new(SynchronousHttp {
+          description: "Test Interaction".into(),
+          request: HttpRequest { headers: Some(hashmap!{
+            "Accept".to_string()=>vec!["application/json".to_string()]
+          }), .. HttpRequest::default() },
+          .. SynchronousHttp::default()
+        })
+      ],
+      metadata: btreemap!{},
+      plugin_data: vec![]
+    };
+    let pact2 = V4Pact {
+      consumer: Consumer { name: "write_pact_test_consumer".into() },
+      provider: Provider { name: "write_pact_test_provider".into() },
+      interactions: vec![
+        Box::new(SynchronousHttp {
+          description: "Test Interaction".into(),
+          request: HttpRequest { headers: Some(hashmap!{
+            "Accept".to_string()=>vec!["application/json".to_string()]
+          }), .. HttpRequest::default() },
+          .. SynchronousHttp::default()
+        })
+      ],
+      metadata: btreemap!{},
+      plugin_data: vec![]
+    };
+    let mut dir = env::temp_dir();
+    let x = rand::random::<u16>();
+    dir.push(format!("pact_test_{}", x));
+    dir.push(pact.default_file_name());
+
+    let result = write_pact(pact.boxed(), dir.as_path(), PactSpecification::V4, false);
+    let result2: Result<(), anyhow::Error> = write_pact(pact2.boxed(), dir.as_path(), PactSpecification::V4, false);
+    let pact_file = read_pact_file(dir.as_path().to_str().unwrap()).unwrap_or_default();
+    fs::remove_dir_all(dir.parent().unwrap()).unwrap_or(());
+
+    expect!(result).to(be_ok());
+    expect!(result2).to(be_ok());
+    expect!(pact_file).to(be_equal_to(format!(r#"{{
+  "consumer": {{
+    "name": "write_pact_test_consumer"
+  }},
+  "interactions": [
+    {{
+      "description": "Test Interaction",
+      "pending": false,
+      "request": {{
+        "headers": {{
+          "Accept": [
+            "application/json"
+          ]
+        }},
+        "method": "GET",
+        "path": "/"
+      }},
+      "response": {{
+        "status": 200
       }},
       "type": "Synchronous/HTTP"
     }}
