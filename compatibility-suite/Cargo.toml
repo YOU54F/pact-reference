@@ -64,3 +64,4 @@ harness = false
 
 [patch.crates-io]
 pact_matching = { path = "../rust/pact_matching" }
+pact_models = { path = "../rust/pact_models" }
