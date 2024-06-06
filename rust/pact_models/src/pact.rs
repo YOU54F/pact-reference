@@ -232,8 +232,12 @@ pub fn write_pact(
       warn!("Note: Existing pact is an older specification version ({:?}), and will be upgraded",
             existing_pact.specification_version());
     }
-
+    // println!("existing pact: {}",serde_json::to_string_pretty(&existing_pact.to_json(pact_spec)?)?);
+    // println!("new pact: {}",serde_json::to_string_pretty(&pact.to_json(pact_spec)?)?);
+    // println!("merging pacts");
+    
     let merged_pact = pact.merge(existing_pact.deref())?;
+    // println!("merged pact json: {}",serde_json::to_string_pretty(&merged_pact.to_json(pact_spec)?)?);
     let pact_json = serde_json::to_string_pretty(&merged_pact.to_json(pact_spec)?)?;
 
     with_write_lock(path, &mut f, 3, &mut |f| {
@@ -1010,6 +1014,83 @@ mod tests {
 }}"#, PACT_RUST_VERSION.unwrap())));
   }
 
+  #[test]
+  fn write_pact_test_should_merge_duplicate_pacts() {
+    let pact = RequestResponsePact { consumer: Consumer { name: "dupe_consumer".to_string() },
+      provider: Provider { name: "dupe_provider".to_string() },
+      interactions: vec![
+        RequestResponseInteraction {
+          description: "Test Interaction".to_string(),
+          request: Request { headers: Some(hashmap!{
+            "Accept".to_string()=>vec!["application/json".to_string()]
+          }), .. Request::default() },
+          .. RequestResponseInteraction::default()
+        }
+      ],
+      metadata: btreemap!{},
+      specification_version: PactSpecification::V3
+    };
+    let pact2 = RequestResponsePact { consumer: Consumer { name: "dupe_consumer".to_string() },
+      provider: Provider { name: "dupe_provider".to_string() },
+      interactions: vec![
+        RequestResponseInteraction {
+          description: "Test Interaction".to_string(),
+          request: Request { headers: Some(hashmap!{
+            "Accept".to_string()=>vec!["application/json".to_string()]
+          }), .. Request::default() },
+          .. RequestResponseInteraction::default()
+        }
+      ],
+      metadata: btreemap!{},
+      specification_version: PactSpecification::V3
+    };
+    let mut dir = env::temp_dir();
+    let x = rand::random::<u16>();
+    dir.push(format!("pact_test_{}", x));
+    dir.push(pact.default_file_name());
+
+    let result = write_pact(pact.boxed(), dir.as_path(), PactSpecification::V3, false);
+    let result2 = write_pact(pact2.boxed(), dir.as_path(), PactSpecification::V3, false);
+
+    let pact_file: String = read_pact_file(dir.as_path().to_str().unwrap()).unwrap_or("".to_string());
+    fs::remove_dir_all(dir.parent().unwrap()).unwrap_or(());
+
+    expect!(result).to(be_ok());
+    expect!(result2).to(be_ok());
+    expect!(pact_file).to(be_equal_to(format!(r#"{{
+  "consumer": {{
+    "name": "dupe_consumer"
+  }},
+  "interactions": [
+    {{
+      "description": "Test Interaction",
+      "request": {{
+        "headers": {{
+          "Accept": "application/json"
+        }},
+        "method": "GET",
+        "path": "/"
+      }},
+      "response": {{
+        "status": 200
+      }}
+    }}
+  ],
+  "metadata": {{
+    "pactRust": {{
+      "models": "{}"
+    }},
+    "pactSpecification": {{
+      "version": "3.0.0"
+    }}
+  }},
+  "provider": {{
+    "name": "dupe_provider"
+  }}
+}}"#, PACT_RUST_VERSION.unwrap())));
+  }
+
+  
   #[test]
   fn write_pact_test_should_not_merge_pacts_with_conflicts() {
     let pact = RequestResponsePact { consumer: Consumer { name: "write_pact_test_consumer".to_string() },
