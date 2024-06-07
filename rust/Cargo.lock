@@ -1863,7 +1863,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "pact-plugin-driver"
 version = "0.6.2"
-source = "git+https://github.com/you54f/pact-plugins.git?branch=fix/logging_min#c3467b4ea688c06ea051983ba2c2f734391342c0"
+source = "git+https://github.com/you54f/pact-plugins.git?branch=fix/logging_min#baeff6ca0f474bd5fe348daf8fb7b873bd6397a2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1915,7 +1915,7 @@ dependencies = [
  "lazy_static",
  "maplit",
  "pact-plugin-driver",
- "pact_matching 1.2.4",
+ "pact_matching",
  "pact_mock_server",
  "pact_models",
  "pretty_assertions",
@@ -1959,7 +1959,7 @@ dependencies = [
  "onig",
  "os_info",
  "pact-plugin-driver",
- "pact_matching 1.2.4",
+ "pact_matching",
  "pact_mock_server",
  "pact_models",
  "pact_verifier",
@@ -1986,47 +1986,6 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "zeroize",
-]
-
-[[package]]
-name = "pact_matching"
-version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddd60651cf03381d1834353687140ab2f0756b5a7c15a1860d1831fee3380dba"
-dependencies = [
- "ansi_term",
- "anyhow",
- "base64 0.22.1",
- "bytes",
- "chrono",
- "difference",
- "futures",
- "hex",
- "http 1.1.0",
- "infer",
- "itertools 0.12.1",
- "lazy_static",
- "lenient_semver",
- "maplit",
- "md5",
- "mime",
- "multer",
- "nom",
- "onig",
- "pact-plugin-driver",
- "pact_models",
- "rand",
- "reqwest 0.12.4",
- "semver",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sxd-document",
- "tokio",
- "tracing",
- "tracing-core",
- "tree_magic_mini",
- "uuid",
 ]
 
 [[package]]
@@ -2079,9 +2038,8 @@ dependencies = [
 
 [[package]]
 name = "pact_mock_server"
-version = "1.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c30ce7d0fb6daf3bd3d60ab0781ca618ac76f53354e48967a48b846f05288cf"
+version = "1.2.9"
+source = "git+https://github.com/you54f/pact-core-mock-server.git?branch=fix/logging_min#46689503e977fd42f993a54a8bf9a658e711987b"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2092,7 +2050,7 @@ dependencies = [
  "lazy_static",
  "maplit",
  "pact-plugin-driver",
- "pact_matching 1.2.3",
+ "pact_matching",
  "pact_models",
  "rustls 0.21.12",
  "rustls-pemfile 1.0.4",
@@ -2176,7 +2134,7 @@ dependencies = [
  "mime",
  "pact-plugin-driver",
  "pact_consumer",
- "pact_matching 1.2.4",
+ "pact_matching",
  "pact_models",
  "pretty_assertions",
  "quickcheck",
@@ -4322,8 +4280,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "pact_mock_server"
-version = "1.2.9"
-source = "git+https://github.com/you54f/pact-core-mock-server.git?branch=fix/logging_min#34929e10502d665091cff1c615984d83f7220585"
