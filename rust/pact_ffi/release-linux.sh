@@ -94,11 +94,15 @@ build_header() {
         --output "$ARTIFACTS_DIR/pact-cpp.h"
 }
 
-install_cross
 if [ ! -z "$TARGET" ]; then
     echo building for target $TARGET
-    build_target $TARGET
-
+    if [[ "$TARGET" == *"musl"* ]]; then
+        install_cross_latest
+        build_target $TARGET
+    else
+        install_cross
+        build_target $TARGET
+    fi
     # If we are building indiv targets, ensure we build the headers
     # for at least 1 nominated target
     if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
@@ -107,10 +111,12 @@ if [ ! -z "$TARGET" ]; then
 else
     echo building for all targets
     # clean release build to avoid conflicting symbols when building all targets 
+    install_cross
     clean_cargo_release_build
     build_target x86_64-unknown-linux-gnu
     clean_cargo_release_build
     build_target aarch64-unknown-linux-gnu
+    install_cross_latest
     clean_cargo_release_build
     build_target x86_64-unknown-linux-musl
     clean_cargo_release_build
