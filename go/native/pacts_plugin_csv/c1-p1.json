@@ -1,0 +1,38 @@
+{
+  "consumer": {
+    "name": "c1"
+  },
+  "interactions": [
+    {
+      "description": "some description",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "some state"
+        }
+      ],
+      "request": {},
+      "response": [],
+      "type": "Synchronous/Messages"
+    }
+  ],
+  "metadata": {
+    "pactRust": {
+      "ffi": "0.4.22",
+      "models": "1.2.2"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    },
+    "plugins": [
+      {
+        "configuration": {},
+        "name": "csv",
+        "version": "0.0.6"
+      }
+    ]
+  },
+  "provider": {
+    "name": "p1"
+  }
+}
