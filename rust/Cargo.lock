@@ -1873,7 +1873,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "pact-plugin-driver"
 version = "0.6.2"
-source = "git+https://github.com/you54f/pact-plugins#716092b65dca5847daf0d400792f95cca6ccd549"
+source = "git+https://github.com/you54f/pact-plugins#5d93f998043460e61507828d667f78e5a1bc7130"
 dependencies = [
  "anyhow",
  "async-trait",
