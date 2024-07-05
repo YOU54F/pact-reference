@@ -21,6 +21,12 @@ pact_matching = { version = "~1.2.4", path = "./pact_matching" }
 # Issue 389 - Pull change into other crates
 pact_models = { version = "~1.2.1", path = "./pact_models" }
 
+# Fixes
+# Windows plugin shutdown
+# Install signal handlers on Unix via PACT_CORE_PLUGINS_SIGNAL_HANDLERS=1 
+pact-plugin-driver = { version = "~0.6.1", git = "https://github.com/you54f/pact-plugins" }
+# pact-plugin-driver = { version = "~0.6.1", path = "../../pact-plugins/drivers/rust/driver" }
+
 [profile.release]
 strip = true
 opt-level = "z"

@@ -1872,9 +1872,8 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "pact-plugin-driver"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dafb1371bf02e0fa25212061d41cc5cbc4ad1116d1e988a86eede5e5bb338931"
+version = "0.6.2"
+source = "git+https://github.com/you54f/pact-plugins#62c0ff4d5c73dd7e9230b8a5a0a4448c390045e8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1887,6 +1886,7 @@ dependencies = [
  "indicatif",
  "itertools 0.12.1",
  "lazy_static",
+ "libc",
  "log",
  "maplit",
  "md5",
