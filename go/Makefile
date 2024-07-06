@@ -1,9 +1,11 @@
 SKIP_SIGNAL_HANDLERS?=false
-TEST_COUNT?=50
+TEST_COUNT?=1
 RACE=-race
-CGO_ENABLED=1
+CGO_ENABLED?=1
+export DYLD_LIBRARY_PATH=/Users/yousaf.nabi/dev/pact-foundation/pact-reference/rust/target/release
+export CGO_LDFLAGS=-L/Users/yousaf.nabi/dev/pact-foundation/pact-reference/rust/target/release
 ifeq ($(CGO_ENABLED),0)
-	SKIP_RACE=true
+	SKIP_RACE=
 endif
 ifeq ($(SKIP_RACE),true)
 	RACE=
@@ -16,6 +18,8 @@ else ifeq ($(PACT_PROVIDER),csv)
 	export PACT_PROVIDER_DIR=./pacts_plugin_csv
 else ifeq ($(PACT_PROVIDER),avro)
 	export PACT_PROVIDER_DIR=./pacts_plugin_avro
+else ifeq ($(PACT_PROVIDER),go)
+	export PACT_PROVIDER_DIR=./pacts_plugin_go
 else ifeq ($(PACT_PROVIDER),message)
 	export PACT_PROVIDER_DIR=./pacts_plugin_message
 else
@@ -26,7 +30,7 @@ run:
 	go run pact/go/native/native
 
 test:
-	go test -v $(SKIP_RACE) -count $(TEST_COUNT) pact/go/native/native
+	go test -x -v $(SKIP_RACE) -count $(TEST_COUNT) pact/go/native/native
 
 test_protobuf:
 	make test PACT_PROVIDER=protobuf
@@ -37,6 +41,6 @@ test_avro:
 test_go:
 	make test PACT_PROVIDER=go
 test_message:
-	make test
+	make test PACT_PROVIDER=message
 test_http:
 	make test

@@ -20,13 +20,13 @@ import (
 
 func plugin_provider() int {
 	verifier := C.pactffi_verifier_new()
-	// C.pactffi_log_to_stdout(0)
+	C.pactffi_log_to_stdout(4)
 	C.pactffi_verifier_set_provider_info(verifier, C.CString("p1"), C.CString("http"), C.CString("localhost"), 8000, C.CString("/"))
 	// C.pactffi_verifier_add_provider_transport(verifier, C.CString("http"), 8000, C.CString("/"), C.CString("http"))
 	// C.pactffi_verifier_add_provider_transport(verifier, C.CString("protobuf"), 37757, C.CString("/"), C.CString("tcp"))
 
 	C.pactffi_verifier_add_directory_source(verifier, C.CString(os.Getenv("PACT_PROVIDER_DIR")))
-	InstallSignalHandlers()
+	// InstallSignalHandlers()
 	defer C.pactffi_verifier_shutdown(verifier)
 	result := C.pactffi_verifier_execute(verifier)
 	if result != 0 {
