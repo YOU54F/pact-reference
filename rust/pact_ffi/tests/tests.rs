@@ -1,4 +1,4 @@
-use std::{env, thread};
+use std::{env, fs, thread};
 use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::Read;
@@ -13,6 +13,8 @@ use libc::c_char;
 use log::LevelFilter;
 use maplit::*;
 use pact_ffi::log::pactffi_log_to_buffer;
+use pact_ffi::mock_server::handles::pactffi_new_sync_message_interaction;
+use pact_ffi::plugins::{pactffi_cleanup_plugins, pactffi_interaction_contents, pactffi_using_plugin};
 use pact_models::bodies::OptionalBody;
 use pact_models::PactSpecification;
 use pretty_assertions::assert_eq;
@@ -836,6 +838,59 @@ fn each_value_matcher() {
   let file_path = CString::new(tmp_path.as_str()).unwrap();
   pactffi_write_pact_file(port, file_path.as_ptr(), true);
   pactffi_cleanup_mock_server(port);
+}
+// Issue # - pactffi_pact_handle_write_file does not write 'transport' key to interaction.
+#[test_log::test]
+fn protobuf_consumer_test() {
+  let consumer_name = CString::new("protobuf-consumer").unwrap();
+  let provider_name = CString::new("protobuf-provider").unwrap();
+  let pact_handle = pactffi_new_pact(consumer_name.as_ptr(), provider_name.as_ptr());
+  pactffi_with_specification(pact_handle, PactSpecification::V4);
+  let description = CString::new("a request to a plugin").unwrap();
+  let interaction = pactffi_new_sync_message_interaction(pact_handle, description.as_ptr());
+  let plugin_name = CString::new("protobuf").unwrap();
+  pactffi_using_plugin(pact_handle, plugin_name.as_ptr(),null());
+
+  let content_type = CString::new("application/grpc").unwrap();
+  let proto_path: PathBuf = std::env::current_dir().unwrap().join("../../proto/area_calculator.proto");
+  let json = json!({
+    "pact:proto":  proto_path,
+    "pact:proto-service": "Calculator/calculateOne",
+     "pact:content-type": "application/protobuf",
+     "request": {
+       "rectangle": {
+         "length": "matching(number, 3)",
+         "width": "matching(number, 4)"
+       }
+     },
+     "response": {
+       "value": ["matching(number, 12)"]
+     }
+   });
+  let body = CString::new(json.to_string()).unwrap();
+  let address = CString::new("0.0.0.0").unwrap();
+  let transport = CString::new("grpc").unwrap();
+
+  pactffi_interaction_contents(interaction.clone(), InteractionPart::Request, content_type.as_ptr(), body.as_ptr());
+
+
+  let port = pactffi_create_mock_server_for_transport(pact_handle.clone(), address.as_ptr(), 0, transport.as_ptr(), null());
+
+  expect!(port).to(be_greater_than(0));
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_path = tmp.path().to_string_lossy().to_string();
+  let file_path = CString::new(tmp_path.as_str()).unwrap();
+  pactffi_write_pact_file(port, file_path.as_ptr(), true);
+  // Uncomment pactffi_pact_handle_write_file and comment out pactffi_write_pact_file to see an error
+  // pactffi_pact_handle_write_file(pact_handle, file_path.as_ptr(), true);
+  pactffi_cleanup_mock_server(port);
+  pactffi_cleanup_plugins(pact_handle);
+
+  let contents = fs::read_to_string(tmp_path + "/protobuf-consumer-protobuf-provider.json").unwrap();
+  let json: Value = serde_json::from_str(&contents).unwrap();
+
+  assert_eq!(json.get("interactions").unwrap()[0]["transport"],"grpc");
 }
 
 // Issue #301
