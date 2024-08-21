@@ -20,6 +20,8 @@ tracing-subscriber = { git = "https://github.com/tokio-rs/tracing.git", tag = "t
 pact_matching = { version = "~1.2.6", path = "./pact_matching" }
 # Issue 389 - Pull change into other crates
 pact_models = { version = "~1.2.4", path = "./pact_models" }
+pact-plugin-driver = { git = "https://github.com/you54f/pact-plugins", branch = "feat/windows_tree_kill" }
+sysinfo = { git = "https://github.com/you54f/sysinfo", branch = "feat/windows_tree_kill" }
 
 [profile.release]
 strip = true
