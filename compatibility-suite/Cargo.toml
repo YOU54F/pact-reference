@@ -64,3 +64,4 @@ harness = false
 
 [patch.crates-io]
 pact_matching = { path = "../rust/pact_matching" }
+pact-plugin-driver = { git = "https://github.com/you54f/pact-plugins", branch = "fix/issue-68_replace_tokio_process" }
