@@ -1976,9 +1976,8 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "pact-plugin-driver"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "337cfac055cf94b9679170821a6ab0e474ec88b129897921ad770467028bfea5"
+version = "0.7.1"
+source = "git+https://github.com/you54f/pact-plugins?branch=fix/issue-68_replace_tokio_process#1473cc690694bc47ab479580114b74dacb3a9c00"
 dependencies = [
  "anyhow",
  "async-trait",
