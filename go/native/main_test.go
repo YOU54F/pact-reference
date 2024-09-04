@@ -5,5 +5,6 @@ import (
 )
 
 func TestPluginProvider1(t *testing.T) {
-	plugin_provider()
+	// plugin_provider()
+	message_consumer_test()
 }
