@@ -585,6 +585,19 @@ func CString(name string) *byte {
 	return &b[0]
 }
 
+func GoString(ptr uintptr, length int) string {
+    if unsafe.Pointer(ptr) == nil || length == 0 {
+        return ""
+    }
+    // Create a Go byte slice from the C string
+    b := make([]byte, length)
+    for i := 0; i < length; i++ {
+        b[i] = *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(ptr)) + uintptr(i)))
+    }
+    return string(b)
+}
+
+
 func plugin_provider() int {
 	verifier := pactffi_verifier_new()
 	pactffi_verifier_set_provider_info(verifier, "p1", "http", "localhost", 8000, "/")
@@ -598,4 +611,107 @@ func plugin_provider() int {
 		fmt.Print("Result success")
 	}
 	return int(result)
+}
+
+type MessagePact struct {
+	handle uintptr
+}
+
+type messageType int
+
+const (
+	MESSAGE_TYPE_ASYNC messageType = iota
+	MESSAGE_TYPE_SYNC
+)
+
+type Message struct {
+	handle      uintptr
+	messageType messageType
+	pact        *MessagePact
+	index       int
+	server      *MessageServer
+}
+
+// MessageServer is the public interface for managing the message based interface
+type MessageServer struct {
+	messagePact *MessagePact
+	messages    []*Message
+}
+
+type interactionPart int
+
+const (
+	INTERACTION_PART_REQUEST interactionPart = iota
+	INTERACTION_PART_RESPONSE
+)
+
+
+func message_consumer_test() {
+	pactffi_log_to_stdout(5)
+	var consumer = "foo"
+	var provider = "bar"
+	var description = "a desc"
+	var state = "test"
+	var expects = "expects"
+	var m = &MessageServer{messagePact: &MessagePact{handle: pactffi_new_message_pact(consumer, provider)}}
+
+	interaction := &Message{
+		handle:      pactffi_new_message_interaction(m.messagePact.handle, description),
+		messageType: MESSAGE_TYPE_ASYNC,
+		pact:        m.messagePact,
+		index:       len(m.messages),
+		server:      m,
+	}
+	m.messages = append(m.messages, interaction)
+
+	pactffi_given(interaction.handle, state)
+
+	pactffi_message_expects_to_receive(interaction.handle, expects)
+
+	var contentType = "text/plain"
+	var part = INTERACTION_PART_REQUEST
+	// var body = []byte("some string")
+	// var body = CString("some string")
+
+
+	res := pactffi_with_body(interaction.handle, int32(part), contentType, "some string")
+	print(bool(res))
+	iter := pactffi_pact_handle_get_message_iter(m.messagePact.handle)
+	if unsafe.Pointer(iter) == nil {
+		print("unable to get a message iterator")
+	}
+	print("[DEBUG] pactffi_pact_handle_get_message_iter - len", len(m.messages))
+	for i := 0; i < len(m.messages); i++ {
+		print("[DEBUG] pactffi_pact_handle_get_message_iter - index", i)
+		message := pactffi_pact_message_iter_next(iter)
+		print("[DEBUG] pactffi_pact_message_iter_next - message", message)
+
+		if i == interaction.index {
+			print("[DEBUG] pactffi_pact_message_iter_next - index match", message)
+
+			if unsafe.Pointer(message) == nil {
+				print("retrieved a null message pointer")
+				return
+			}
+
+			len := pactffi_message_get_contents_length(message)
+			print("[DEBUG] pactffi_message_get_contents_length - len", len)
+			if len == 0 {
+				// You can have empty bodies
+				print("[DEBUG] message body is empty")
+				return
+			}
+			data := pactffi_message_get_contents_bin(message)
+			print("[DEBUG] pactffi_message_get_contents_bin - data", data)
+			if unsafe.Pointer(data) == nil {
+				// You can have empty bodies
+				print("[DEBUG] message binary contents are empty")
+				return
+			}
+			bytes := GoString(data, int(len))
+			print("got bytes")
+			print(bytes)
+			return
+		}
+	}
 }
