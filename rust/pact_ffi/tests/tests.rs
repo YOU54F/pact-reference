@@ -13,7 +13,11 @@ use libc::c_char;
 use log::LevelFilter;
 use maplit::*;
 use pact_ffi::log::pactffi_log_to_buffer;
+use pact_ffi::mock_server;
+use pact_ffi::mock_server::handles::pactffi_new_sync_message_interaction;
+use pact_ffi::plugins::{pactffi_cleanup_plugins, pactffi_interaction_contents, pactffi_using_plugin};
 use pact_models::bodies::OptionalBody;
+use pact_models::v4::pact;
 use pact_models::PactSpecification;
 use pretty_assertions::assert_eq;
 use reqwest::blocking::Client;
@@ -1840,4 +1844,104 @@ fn returns_mock_server_logs() {
   pactffi_cleanup_mock_server(port);
 
   assert_ne!(logs,"", "logs are empty");
+}
+
+// Issue https://github.com/YOU54F/pact-ruby-ffi/issues/6
+#[test_log::test]
+fn test_protobuf_plugin_contents_merge_with_existing_interaction() {
+  let tmp = tempfile::tempdir().unwrap();
+  let tmp_dir = CString::new(tmp.path().to_string_lossy().as_bytes().to_vec()).unwrap();
+  // 1. create an existing pact with single plugin interaction
+  // 2. create a new plugin interaction that only differs by interaction description
+  // expected: 2 interactions are generated, identical bar interaction description
+  // actual: existing interaction is modified at response[0].contents, when merging 2nd interaction
+
+  let consumer_name = CString::new("PluginMergeConsumer").unwrap();
+  let provider_name = CString::new("PluginMergeProvider").unwrap();
+  let contents = json!({
+    "pact:proto": fixture_path("proto/area_calculator.proto").to_string_lossy().to_string(),
+    "pact:proto-service": "Calculator/calculateOne",
+    "pact:content-type": "application/protobuf",
+    "request": {
+      "rectangle": {
+        "length": "matching(number, 3)",
+        "width": "matching(number, 3)"
+      }
+    },
+    "responseMetadata": {
+      "grpc-status": "UNIMPLEMENTED",
+      "grpc-message": "Not implemented"
+    }
+  });
+  let expected_response_contents = json!({
+    "content": "",
+    "contentType": "application/protobuf;message=.area_calculator.AreaResponse",
+    "contentTypeHint": "BINARY",
+    "encoded": "base64"
+  });
+  let plugin_name = CString::new("protobuf").unwrap();
+  let contents_str = CString::new(contents.to_string()).unwrap();
+  let desc1 = CString::new("description 1").unwrap();
+  let desc2 = CString::new("description 2").unwrap();
+  let content_type = CString::new("application/grpc").unwrap();
+  let address = CString::new("127.0.0.1").unwrap();
+  let transport = CString::new("grpc").unwrap();
+
+  // Setup New interaction and write to new pact file - validate .interactions[0].response[0].contents
+  let pact_handle: PactHandle = pactffi_new_pact(consumer_name.as_ptr(), provider_name.as_ptr());
+  pactffi_with_specification(pact_handle, PactSpecification::V4);
+  let i_handle1 = pactffi_new_sync_message_interaction(pact_handle, desc1.as_ptr());
+  pactffi_using_plugin(pact_handle, plugin_name.as_ptr(), std::ptr::null());
+  pactffi_interaction_contents(i_handle1, InteractionPart::Request, content_type.as_ptr(), contents_str.as_ptr());
+
+  let mock_server_port = pactffi_create_mock_server_for_transport(pact_handle, address.as_ptr(), 0, transport.as_ptr(), null());
+  print!("Mock server running on {}", mock_server_port);
+  let result_1 = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), false);
+  expect!(result_1).to(be_equal_to(0));
+  let pact_file: Option<String> = pact_default_file_name(&pact_handle);
+  let pact_path = tmp.path().join(pact_file.unwrap());
+  pactffi_free_pact_handle(pact_handle);
+  let f= File::open(pact_path).unwrap();
+  let json: Value = serde_json::from_reader(f).unwrap();
+  let interaction_1_response_contents = &json["interactions"][0]["response"][0]["contents"];
+  pactffi_cleanup_mock_server(mock_server_port);
+  pactffi_cleanup_plugins(pact_handle);
+  assert_eq!(
+    &expected_response_contents,
+    interaction_1_response_contents
+  );
+
+  // Setup New interaction and write to existing pact file - validate .interactions[0].response[0].contents
+  let pact_handle_2: PactHandle = pactffi_new_pact(consumer_name.as_ptr(), provider_name.as_ptr());
+  pactffi_with_specification(pact_handle_2, PactSpecification::V4);
+  let i_handle2 = pactffi_new_sync_message_interaction(pact_handle_2, desc2.as_ptr());
+  pactffi_using_plugin(pact_handle_2, plugin_name.as_ptr(), std::ptr::null());
+  pactffi_interaction_contents(i_handle2, InteractionPart::Request, content_type.as_ptr(), contents_str.as_ptr());
+  let mock_server_port_2 = pactffi_create_mock_server_for_transport(pact_handle_2, address.as_ptr(), 0, transport.as_ptr(), null());
+  print!("Mock server running on {}", mock_server_port_2);
+  let result_2 = pactffi_pact_handle_write_file(pact_handle_2, tmp_dir.as_ptr(), false);
+  expect!(result_2).to(be_equal_to(0));
+  let pact_file_2: Option<String> = pact_default_file_name(&pact_handle_2);
+  let pact_path_2 = tmp.path().join(pact_file_2.unwrap());
+  pactffi_free_pact_handle(pact_handle_2);
+  let f_2= File::open(pact_path_2).unwrap();
+  let json_2: Value = serde_json::from_reader(f_2).unwrap();
+  let interaction_2_description = &json_2["interactions"][0]["description"];
+  let interaction_2_description_2 = &json_2["interactions"][1]["description"];
+  let interaction_2_response_contents = &json_2["interactions"][0]["response"][0]["contents"];
+  let interaction_2_response_contents_2 = &json_2["interactions"][1]["response"][0]["contents"];
+  pactffi_cleanup_mock_server(mock_server_port_2);
+  pactffi_cleanup_plugins(pact_handle_2);
+  assert_eq!("description 1", interaction_2_description.as_str().unwrap());
+  assert_eq!("description 2", interaction_2_description_2.as_str().unwrap());
+  assert_eq!(
+    &expected_response_contents,
+    interaction_2_response_contents_2
+  );
+  assert_eq!(
+    &expected_response_contents,
+    interaction_2_response_contents
+  );
+
+
 }
