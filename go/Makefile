@@ -1,4 +1,3 @@
-SKIP_SIGNAL_HANDLERS?=false
 TEST_COUNT?=1
 RACE=-race
 CGO_ENABLED?=1
@@ -37,6 +36,6 @@ test_avro:
 test_go:
 	make test PACT_PROVIDER=go
 test_message:
-	make test
+	make test PACT_PROVIDER=message
 test_http:
-	make test
+	make test PACT_PROVIDER=http

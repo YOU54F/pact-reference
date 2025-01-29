@@ -602,7 +602,6 @@ func plugin_provider() int {
 	verifier := pactffi_verifier_new()
 	pactffi_verifier_set_provider_info(verifier, "p1", "http", "localhost", 8000, "/")
 	pactffi_verifier_add_directory_source(verifier, os.Getenv("PACT_PROVIDER_DIR"))
-	InstallSignalHandlers()
 	result := pactffi_verifier_execute(verifier)
 	pactffi_verifier_shutdown(verifier)
 	if result != 0 {

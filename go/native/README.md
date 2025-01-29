@@ -56,42 +56,10 @@ The following languages are currently being used as plugins:
 
 ## Issues
 
-### Issue 1 - Segfaults on Linux / MacOS
+### Issue 1 - Segfaults on Linux Musl 
 
-```
-signal 17 received but handler not on signal stack
-mp.gsignal stack [0x400006e000 0x4000076000], mp.g0 stack [0xffff4320e810 0xffff43a0e410], sp=0x40000e3608
-fatal error: non-Go code set up signal handler without SA_ONSTACK flag
-```
-
-Fixed by workaround in following PR
-
-- https://github.com/wailsapp/wails/pull/2152/files#diff-d4a0fa73df7b0ab971e550f95249e358b634836e925ace96f7400480916ac09e
-
-> Sets up a new signal handler in C that overrides the current one (in C) so that SA_ONSTACK is used.
-
-See golang docs for os/signal 
-
-https://pkg.go.dev/os/signal#hdr-Go_programs_that_use_cgo_or_SWIG
-
-> If the non-Go code installs any signal handlers, it must use the SA_ONSTACK flag with sigaction. Failing to do so is likely to cause the program to crash if the signal is received. Go programs routinely run with a limited stack, and therefore set up an alternate signal stack.
-
-#### Additional Problems
-
-1. Does not fix Alpine linux
-2. Fix does not with CGO_ENABLED=0 using https://github.com/ebitengine/purego, as it requires C code to be injected.
-   1. Probably fix needs to be applied to fakego in purego
+1. Test with CGO_ENABLED=0 using https://github.com/ebitengine/purego
 
 ## Testing
 
 - Use of CGO or ebitengine/purego is controlled by `CGO_ENABLED=1` for `cgo` and `CGO_ENABLED=0` for `purego`
-- Fix can be removed by settings `SKIP_SIGNAL_HANDLERS=true`
-
-### Issue 2 - Windows plugin executables are not shutdown properly
-
-```
-*** Test I/O incomplete 1m0s after exiting.
-exec: WaitDelay expired before I/O complete
-```
-
-The windows executable is shutdown externally via taskkill or the task manager, will exit the plugin correctly and the test will pass.

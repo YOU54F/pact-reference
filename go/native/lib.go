@@ -4,30 +4,43 @@
 // Package native contains the c bindings into the Pact Reference types.
 package main
 
+// extern void cgoTraceback(void*);
+// extern void cgoSymbolizer(void*);
 /*
 #cgo darwin,arm64 LDFLAGS: -L/tmp -L/usr/local/lib -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
 #cgo darwin,amd64 LDFLAGS: -L/tmp -L/usr/local/lib -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
 #cgo windows,amd64 LDFLAGS: -lpact_ffi
-#cgo linux,amd64 LDFLAGS: -L/tmp -L/opt/pact/lib -L/usr/local/lib -Wl,-rpath -Wl,/opt/pact/lib -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
-#cgo linux,arm64 LDFLAGS: -L/tmp -L/opt/pact/lib -L/usr/local/lib -Wl,-rpath -Wl,/opt/pact/lib -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
+#cgo linux,amd64 LDFLAGS: -L/tmp -L/home/rust/target/debug -L/usr/local/lib -Wl,-rpath -Wl,/home/rust/target/debug -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
+#cgo linux,arm64 LDFLAGS: -L/tmp -L/home/rust/target/debug -L/usr/local/lib -Wl,-rpath -Wl,/home/rust/target/debug -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
 #include "pact.h"
+struct contextArg {
+	uintptr_t context;
+};
+
+void cgoContext(struct contextArg* p) {
+	if (p->context == 0) {
+		p->context = 1;
+	}
+}
+
 */
 import "C"
 import (
 	"fmt"
 	"os"
+	"runtime"
+
 	"unsafe"
+
+	_ "github.com/ianlancetaylor/cgosymbolizer"
 )
 
 func plugin_provider() int {
+	runtime.SetCgoTraceback(0, unsafe.Pointer(C.cgoTraceback), unsafe.Pointer(C.cgoContext), unsafe.Pointer(C.cgoSymbolizer))
 	verifier := C.pactffi_verifier_new()
-	// C.pactffi_log_to_stdout(0)
 	C.pactffi_verifier_set_provider_info(verifier, C.CString("p1"), C.CString("http"), C.CString("localhost"), 8000, C.CString("/"))
-	// C.pactffi_verifier_add_provider_transport(verifier, C.CString("http"), 8000, C.CString("/"), C.CString("http"))
-	// C.pactffi_verifier_add_provider_transport(verifier, C.CString("protobuf"), 37757, C.CString("/"), C.CString("tcp"))
 
 	C.pactffi_verifier_add_directory_source(verifier, C.CString(os.Getenv("PACT_PROVIDER_DIR")))
-	InstallSignalHandlers()
 	defer C.pactffi_verifier_shutdown(verifier)
 	result := C.pactffi_verifier_execute(verifier)
 	if result != 0 {
@@ -116,7 +129,6 @@ func message_consumer_test() {
 	var body = []byte("some string")
 	cHeader := C.CString(contentType)
 	defer free(cHeader)
-
 
 	res := C.pactffi_with_body(interaction.handle, uint32(part), cHeader, (*C.char)(unsafe.Pointer(&body[0])))
 	print(bool(res))
