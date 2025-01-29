@@ -10,8 +10,8 @@ package main
 #cgo darwin,arm64 LDFLAGS: -L/tmp -L/usr/local/lib -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
 #cgo darwin,amd64 LDFLAGS: -L/tmp -L/usr/local/lib -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
 #cgo windows,amd64 LDFLAGS: -lpact_ffi
-#cgo linux,amd64 LDFLAGS: -L/tmp -L/home/rust/target/debug -L/usr/local/lib -Wl,-rpath -Wl,/home/rust/target/debug -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
-#cgo linux,arm64 LDFLAGS: -L/tmp -L/home/rust/target/debug -L/usr/local/lib -Wl,-rpath -Wl,/home/rust/target/debug -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
+#cgo linux,amd64 LDFLAGS: -L/tmp -L/home/pact-reference/rust/target/debug -L/usr/local/lib -Wl,-rpath -Wl,/home/pact-reference/rust/target/debug -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
+#cgo linux,arm64 LDFLAGS: -L/tmp -L/home/pact-reference/rust/target/debug -L/usr/local/lib -Wl,-rpath -Wl,/home/pact-reference/rust/target/debug -Wl,-rpath -Wl,/tmp -Wl,-rpath -Wl,/usr/local/lib -lpact_ffi
 #include "pact.h"
 struct contextArg {
 	uintptr_t context;
@@ -82,7 +82,6 @@ const (
 	INTERACTION_PART_REQUEST interactionPart = iota
 	INTERACTION_PART_RESPONSE
 )
-
 
 func free(str *C.char) {
 	C.free(unsafe.Pointer(str))
