@@ -17,6 +17,6 @@ RUN apk add go gdb
 RUN mkdir -p /root/.config/gdb
 RUN echo "set auto-load safe-path /" >> /root/.config/gdb/gdbinit
 
-# RUN go test -v pact/go/native/native -count 1 -c
+RUN go test -v pact/go/native/native -count 1 -c
 
-# CMD ["sh", "-c", "PACT_PROVIDER_DIR=./native/pacts_http gdb -ex run --args ./native.test -test.count=5"]
+CMD ["sh", "-c", "PACT_PROVIDER_DIR=./native/pacts_http gdb -ex run --args ./native.test -test.count=5"]

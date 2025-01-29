@@ -1,0 +1,45 @@
+FROM alpine
+
+# usage
+# docker build -f Dockerfile.alpine_pact_cgo_issue_repro -t pact-cgo-repro .
+# docker run --security-opt seccomp=unconfined --rm -it pact-cgo-repro
+# docker run --security-opt seccomp=unconfined --rm -it pact-cgo-repro gdb -ex run --args ./libpact_cgo_disabled
+# docker run --security-opt seccomp=unconfined --rm -it pact-cgo-repro gdb -ex run --args ./pact_go
+# docker run --security-opt seccomp=unconfined --rm -it pact-cgo-repro gdb -ex run --args ./libpact_cgo_enabled -test.count=5
+
+# bt, if a seg fault occurs
+# info frame, get details about which frame
+# c, continue execution
+# r, run execution again
+
+# build debug binary for pact-reference
+RUN apk add cargo musl-dev gcc git
+WORKDIR /home
+RUN git clone --depth 1 https://github.com/pact-foundation/pact-reference.git
+WORKDIR /home/pact-reference/rust/pact_ffi
+RUN cargo build
+RUN cp ../target/debug/libpact_ffi.so /tmp && \
+    rm -rf /home/pact-reference
+
+# download example repo
+WORKDIR /home
+RUN git clone --depth 1 --branch test/docker-alpine https://github.com/pactflow/example-provider-golang
+WORKDIR /home/example-provider-golang
+
+# setup gdb
+RUN apk add go gdb
+RUN mkdir -p /root/.config/gdb
+RUN echo "set auto-load safe-path /" >> /root/.config/gdb/gdbinit
+
+# build test binaries
+# build with cgo (direct bindings)
+RUN go test -v -count=1 . --tags libpact_cgo -c -o libpact_cgo_enabled
+# build with cgo disabled using ebitengine/purego
+RUN CGO_ENABLED=0 go test -v -count=1 . --tags libpact_cgo -c -o libpact_cgo_disabled
+# build with cgo (using pact-go)
+RUN go test -v -count=1 . --tags pact_go -c -o pact_go
+
+
+
+# execute test binary under gdb
+CMD ["sh", "-c", "gdb -ex run --args ./libpact_cgo_enabled"]
