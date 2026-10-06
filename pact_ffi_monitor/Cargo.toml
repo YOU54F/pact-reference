@@ -1,0 +1,18 @@
+[package]
+name = "pact_ffi_monitor"
+version = "0.1.0"
+edition = "2024"
+description = "Freya GUI companion that monitors invocations of the pact_ffi shared library"
+license = "MIT"
+
+# Standalone: deliberately not part of the `rust/` workspace so the heavy GUI dependencies don't affect it.
+[workspace]
+
+[dependencies]
+freya = { version = "=0.5.0-rc.8", features = ["sdk-tokio"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

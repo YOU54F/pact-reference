@@ -23,6 +23,7 @@ use crate::util::string::to_c;
 /// [`pactffi_logger_apply`].
 #[no_mangle]
 pub extern "C" fn pactffi_log_to_stdout(level_filter: LevelFilter) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_log_to_stdout; level_filter);
     pactffi_logger_init();
 
     let spec = match CString::new("stdout") {
@@ -53,6 +54,7 @@ pub extern "C" fn pactffi_log_to_stdout(level_filter: LevelFilter) -> c_int {
 /// [`pactffi_logger_apply`].
 #[no_mangle]
 pub extern "C" fn pactffi_log_to_stderr(level_filter: LevelFilter) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_log_to_stderr; level_filter);
     pactffi_logger_init();
 
     let spec = match CString::new("stderr") {
@@ -92,6 +94,7 @@ pub unsafe extern "C" fn pactffi_log_to_file(
     file_name: *const c_char,
     level_filter: LevelFilter,
 ) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_log_to_file; file_name, level_filter);
     pactffi_logger_init();
 
     let spec = {
@@ -142,6 +145,7 @@ pub unsafe extern "C" fn pactffi_log_to_file(
 /// [`pactffi_fetch_log_buffer`].
 #[no_mangle]
 pub extern "C" fn pactffi_log_to_buffer(level_filter: LevelFilter) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_log_to_buffer; level_filter);
   pactffi_logger_init();
 
   let spec = match CString::new("buffer") {
@@ -208,6 +212,7 @@ pub extern "C" fn pactffi_log_to_buffer(level_filter: LevelFilter) -> c_int {
 /// This function is always safe to call.
 #[no_mangle]
 pub extern "C" fn pactffi_logger_init() {
+  let _monitor = crate::monitor_call!(pactffi_logger_init; );
   init_logger();
 }
 
@@ -251,6 +256,7 @@ pub unsafe extern "C" fn pactffi_logger_attach_sink(
     sink_specifier: *const c_char,
     level_filter: LevelFilter,
 ) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_logger_attach_sink; sink_specifier, level_filter);
     // Get the specifier from the raw C string.
     let sink_specifier = CStr::from_ptr(sink_specifier);
     let sink_specifier = match sink_specifier.to_str() {
@@ -290,6 +296,7 @@ pub unsafe extern "C" fn pactffi_logger_attach_sink(
 /// - `-1`: Can't set logger (applying the logger failed, perhaps because one is applied already).
 #[no_mangle]
 pub extern "C" fn pactffi_logger_apply() -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_logger_apply; );
     let status = match apply_logger() {
         Ok(_) => Status::Success,
         Err(err) => Status::from(err),
@@ -315,6 +322,7 @@ pub extern "C" fn pactffi_logger_apply() -> c_int {
 /// terminated string.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_fetch_log_buffer(log_id: *const c_char) -> *const c_char {
+  let _monitor = crate::monitor_call!(pactffi_fetch_log_buffer; log_id);
   let id = if log_id.is_null() {
     "global"
   } else {

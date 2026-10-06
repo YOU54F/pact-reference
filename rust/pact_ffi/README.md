@@ -9,6 +9,12 @@ in other languages.
 Documentation for the FFI functions and types is available at https://docs.rs/pact_ffi/latest/pact_ffi/index.html, and
 documentation on the integration JSON format is [IntegrationJson.md](https://github.com/pact-foundation/pact-reference/blob/master/rust/pact_ffi/IntegrationJson.md).
 
+## Monitoring calls
+
+Setting the `PACT_FFI_MONITOR=host:port` environment variable makes the library report every FFI call
+(arguments, result, duration, thread) as NDJSON over TCP to that address, for use with the
+[pact_ffi_monitor](../../pact_ffi_monitor) GUI. It is off unless the variable is set.
+
 ## Dependencies
 
 This crates requires:

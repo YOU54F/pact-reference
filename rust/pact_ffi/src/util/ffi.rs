@@ -20,9 +20,19 @@ macro_rules! ffi_fn {
                 ::tracing::trace!("@param {} = {:?}", stringify!($arg), $arg);
             )*
 
-            let output = catch_panic(|| Ok($body)).unwrap_or($fail);
+            let __monitor = $crate::monitor::start(stringify!($name), module_path!(), || {
+                vec![$((stringify!($arg), $crate::monitor_arg!($arg))),*]
+            });
+
+            let __result = catch_panic(|| Ok($body));
+            let __panicked = __result.is_none();
+            let output = __result.unwrap_or($fail);
 
             ::tracing::trace!(output = ?output, "{} FFI function completed", stringify!($name));
+
+            if let Some(__call) = __monitor {
+                __call.finish(|| $crate::monitor_arg!(output), __panicked);
+            }
 
             output
         }
@@ -47,9 +57,19 @@ macro_rules! ffi_fn {
                 ::tracing::trace!("@param {} = {:?}", stringify!($arg), $arg);
             )*
 
-            let output = catch_panic(|| ::futures::executor::block_on(async { Ok($body) })).unwrap_or($fail);
+            let __monitor = $crate::monitor::start(stringify!($name), module_path!(), || {
+                vec![$((stringify!($arg), $crate::monitor_arg!($arg))),*]
+            });
+
+            let __result = catch_panic(|| ::futures::executor::block_on(async { Ok($body) }));
+            let __panicked = __result.is_none();
+            let output = __result.unwrap_or($fail);
 
             ::tracing::trace!(output = ?output, "{} FFI function completed", stringify!($name));
+
+            if let Some(__call) = __monitor {
+                __call.finish(|| $crate::monitor_arg!(output), __panicked);
+            }
 
             output
         }

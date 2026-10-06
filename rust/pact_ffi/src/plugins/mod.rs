@@ -133,6 +133,7 @@ ffi_fn! {
 /// When an error errors, LAST_ERROR will contain the error message.
 #[no_mangle]
 pub extern "C" fn pactffi_using_plugin(pact: PactHandle, plugin_name: *const c_char, plugin_version: *const c_char) -> c_uint {
+  let _monitor = crate::monitor_call!(pactffi_using_plugin; pact, plugin_name, plugin_version);
   let result = pactffi_using_plugin_with_delay(pact, plugin_name, plugin_version, 500);
   result
 }
@@ -166,6 +167,7 @@ ffi_fn! {
 /// `test_run_id` must be a valid pointer to a NULL terminated string, or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_set_test_run_id(test_run_id: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_set_test_run_id; test_run_id);
   let id = if test_run_id.is_null() {
     None
   } else {
@@ -188,6 +190,7 @@ pub unsafe extern "C" fn pactffi_set_test_run_id(test_run_id: *const c_char) {
 /// `callback` must be a valid function pointer or NULL.
 #[no_mangle]
 pub extern "C" fn pactffi_register_plugin_log_callback(callback: Option<PluginLogCallback>) {
+  let _monitor = crate::monitor_call!(pactffi_register_plugin_log_callback; callback);
   if let Some(cb) = callback {
     register_callback(cb);
   }
@@ -206,6 +209,7 @@ pub extern "C" fn pactffi_register_plugin_log_callback(callback: Option<PluginLo
 pub unsafe extern "C" fn pactffi_get_plugin_logs(
   plugin_instance_id: *const c_char,
 ) -> *const c_char {
+  let _monitor = crate::monitor_call!(pactffi_get_plugin_logs; plugin_instance_id);
   if plugin_instance_id.is_null() {
     return std::ptr::null();
   }
@@ -258,6 +262,7 @@ pub extern "C" fn pactffi_interaction_contents(
   content_type: *const c_char,
   contents: *const c_char
 ) -> c_uint {
+  let _monitor = crate::monitor_call!(pactffi_interaction_contents; interaction, part, content_type, contents);
   catch_panic(|| {
     let content_type_str = safe_str!(content_type);
     let content_type = match ContentType::parse(content_type_str) {

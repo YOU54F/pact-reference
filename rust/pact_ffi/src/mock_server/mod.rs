@@ -103,6 +103,7 @@ fn attach_to_manager(builder: MockServerBuilder) -> anyhow::Result<Either<MockSe
 /// An empty string indicates an error reading the pem file.
 #[no_mangle]
 pub extern "C" fn pactffi_get_tls_ca_certificate() -> *mut c_char  {
+  let _monitor = crate::monitor_call!(pactffi_get_tls_ca_certificate; );
   let cert_file = include_str!("ca.pem");
   let cert_str = CString::new(cert_file).unwrap_or_default();
 
@@ -457,6 +458,7 @@ pub enum StringResult {
 /// this will lead to undefined behaviour.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_generate_datetime_string(format: *const c_char) -> StringResult {
+  let _monitor = crate::monitor_call!(pactffi_generate_datetime_string; format);
   if format.is_null() {
     let error = CString::new("generate_datetime_string: format is NULL").unwrap();
     StringResult::Failed(error.into_raw())
@@ -492,6 +494,7 @@ pub unsafe extern "C" fn pactffi_generate_datetime_string(format: *const c_char)
 /// pointers will result in undefined behaviour.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_check_regex(regex: *const c_char, example: *const c_char) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_check_regex; regex, example);
   if regex.is_null() {
     false
   } else {
@@ -539,6 +542,7 @@ pub fn generate_regex_value_internal(regex: &str) -> Result<String, String> {
 /// result in undefined behaviour.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_generate_regex_value(regex: *const c_char) -> StringResult {
+  let _monitor = crate::monitor_call!(pactffi_generate_regex_value; regex);
   if regex.is_null() {
     let error = CString::new("generate_regex_value: regex is NULL").unwrap();
     StringResult::Failed(error.into_raw())
@@ -574,6 +578,7 @@ pub unsafe extern "C" fn pactffi_generate_regex_value(regex: *const c_char) -> S
 #[no_mangle]
 #[deprecated(since = "0.1.0", note = "Use pactffi_string_delete instead")]
 pub unsafe extern "C" fn pactffi_free_string(s: *mut c_char) {
+  let _monitor = crate::monitor_call!(pactffi_free_string; s);
   if s.is_null() {
     return;
   }

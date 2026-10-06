@@ -432,6 +432,7 @@ impl MessageHandle {
 /// method to release its resources.
 #[no_mangle]
 pub extern "C" fn pactffi_new_pact(consumer_name: *const c_char, provider_name: *const c_char) -> PactHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_pact; consumer_name, provider_name);
   let consumer = convert_cstr("consumer_name", consumer_name).unwrap_or("Consumer");
   let provider = convert_cstr("provider_name", provider_name).unwrap_or("Provider");
   PactHandle::new(consumer, provider)
@@ -465,6 +466,7 @@ fn find_interaction_with_description(pact: &V4Pact, description: &str) -> Option
 /// Returns a new `InteractionHandle`.
 #[no_mangle]
 pub extern "C" fn pactffi_new_interaction(pact: PactHandle, description: *const c_char) -> InteractionHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_interaction; pact, description);
   if let Some(description) = convert_cstr("description", description) {
     pact.with_pact(&|_, inner| {
       let interaction = SynchronousHttp {
@@ -494,6 +496,7 @@ pub extern "C" fn pactffi_new_interaction(pact: PactHandle, description: *const 
 /// Returns a new `InteractionHandle`.
 #[no_mangle]
 pub extern "C" fn pactffi_new_message_interaction(pact: PactHandle, description: *const c_char) -> InteractionHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_message_interaction; pact, description);
   if let Some(description) = convert_cstr("description", description) {
     pact.with_pact(&|_, inner| {
       let interaction = AsynchronousMessage {
@@ -523,6 +526,7 @@ pub extern "C" fn pactffi_new_message_interaction(pact: PactHandle, description:
 /// Returns a new `InteractionHandle`.
 #[no_mangle]
 pub extern "C" fn pactffi_new_sync_message_interaction(pact: PactHandle, description: *const c_char) -> InteractionHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_sync_message_interaction; pact, description);
   if let Some(description) = convert_cstr("description", description) {
     pact.with_pact(&|_, inner| {
       let interaction = SynchronousMessage {
@@ -549,6 +553,7 @@ pub extern "C" fn pactffi_new_sync_message_interaction(pact: PactHandle, descrip
 /// * `description` - The interaction description. It needs to be unique for each interaction.
 #[no_mangle]
 pub extern "C" fn pactffi_upon_receiving(interaction: InteractionHandle, description: *const c_char) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_upon_receiving; interaction, description);
   if let Some(description) = convert_cstr("description", description) {
     interaction.with_interaction(&|_, mock_server_started, inner| {
       inner.set_description(description);
@@ -565,6 +570,7 @@ pub extern "C" fn pactffi_upon_receiving(interaction: InteractionHandle, descrip
 /// * `description` - The provider state description. It needs to be unique.
 #[no_mangle]
 pub extern "C" fn pactffi_given(interaction: InteractionHandle, description: *const c_char) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_given; interaction, description);
   if let Some(description) = convert_cstr("description", description) {
     interaction.with_interaction(&|_, mock_server_started, inner| {
       inner.provider_states_mut().push(ProviderState::default(&description.to_string()));
@@ -624,6 +630,7 @@ ffi_fn! {
 #[no_mangle]
 pub extern "C" fn pactffi_given_with_param(interaction: InteractionHandle, description: *const c_char,
                                        name: *const c_char, value: *const c_char) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_given_with_param; interaction, description, name, value);
   if let Some(description) = convert_cstr("description", description) {
     if let Some(name) = convert_cstr("name", name) {
       let value = convert_cstr("value", value).unwrap_or_default();
@@ -672,6 +679,7 @@ pub extern "C" fn pactffi_given_with_params(
   description: *const c_char,
   params: *const c_char
 ) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_given_with_params; interaction, description, params);
   if let Some(description) = convert_cstr("description", description) {
     if let Some(params) = convert_cstr("params", params) {
       let params_value = match serde_json::from_str(params) {
@@ -723,6 +731,7 @@ pub extern "C" fn pactffi_with_request(
   method: *const c_char,
   path: *const c_char
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_request; interaction, method, path);
   let method = convert_cstr("method", method).unwrap_or("GET");
   let path = convert_cstr("path", path).unwrap_or("/");
 
@@ -762,6 +771,7 @@ pub extern "C" fn pactffi_with_query_parameter(
   index: size_t,
   value: *const c_char
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_query_parameter; interaction, name, index, value);
   if let Some(name) = convert_cstr("name", name) {
     let value = convert_cstr("value", value).unwrap_or_default();
     interaction.with_interaction(&|_, mock_server_started, inner| {
@@ -872,6 +882,7 @@ pub extern "C" fn pactffi_with_query_parameter_v2(
   index: size_t,
   value: *const c_char
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_query_parameter_v2; interaction, name, index, value);
   if let Some(name) = convert_cstr("name", name) {
     let value = convert_cstr("value", value);
     trace!(?interaction, name, index, value, "pactffi_with_query_parameter_v2 called");
@@ -1111,6 +1122,7 @@ pub(crate) fn process_xml(body: String, matching_rules: &mut MatchingRuleCategor
 /// * `version` - the spec version to use
 #[no_mangle]
 pub extern "C" fn pactffi_with_specification(pact: PactHandle, version: PactSpecification) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_specification; pact, version);
   pact.with_pact(&|_, inner| {
     inner.specification_version = version.into();
     !inner.mock_server_started
@@ -1145,6 +1157,7 @@ pub extern "C" fn pactffi_with_pact_metadata(
   name: *const c_char,
   value: *const c_char
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_pact_metadata; pact, namespace, name, value);
   pact.with_pact(&|_, inner| {
     let namespace = convert_cstr("namespace", namespace).unwrap_or_default();
     let name = convert_cstr("name", name).unwrap_or_default();
@@ -1230,6 +1243,7 @@ pub extern "C" fn pactffi_with_metadata(
   value: *const c_char,
   part: InteractionPart,
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_metadata; interaction, key, value, part);
   trace!("pactffi_with_metadata(interaction: {:?}, key: {:?}, value: {:?}, part: {:?})", interaction, key, value, part);
   let key = match convert_cstr("key", key) {
     Some(key) => key,
@@ -1337,6 +1351,7 @@ pub extern "C" fn pactffi_with_header(
   index: size_t,
   value: *const c_char
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_header; interaction, part, name, index, value);
   trace!(">>> pactffi_with_header({:?}, {:?}, {:?}, {:?}, {:?})", interaction, part, name, index, value);
   if let Some(name) = convert_cstr("name", name) {
     let value = convert_cstr("value", value).unwrap_or_default();
@@ -1447,6 +1462,7 @@ pub extern "C" fn pactffi_with_header_v2(
   index: size_t,
   value: *const c_char
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_header_v2; interaction, part, name, index, value);
   if let Some(name) = convert_cstr("name", name) {
     let value = convert_cstr("value", value).unwrap_or_default();
     interaction.with_interaction(&|_, mock_server_started, inner| {
@@ -1627,6 +1643,7 @@ ffi_fn! {
 /// * `status` - the response status. Defaults to 200.
 #[no_mangle]
 pub extern "C" fn pactffi_response_status(interaction: InteractionHandle, status: c_ushort) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_response_status; interaction, status);
   interaction.with_interaction(&|_, mock_server_started, inner| {
     if let Some(reqres) = inner.as_v4_http_mut() {
       reqres.response.status = status;
@@ -1656,6 +1673,7 @@ pub extern "C" fn pactffi_response_status(interaction: InteractionHandle, status
 /// The status parameter must be valid pointers to NULL terminated strings.
 #[no_mangle]
 pub extern "C" fn pactffi_response_status_v2(interaction: InteractionHandle, status: *const c_char) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_response_status_v2; interaction, status);
   let status = convert_cstr("status", status).unwrap_or("200");
   interaction.with_interaction(&|_, mock_server_started, inner| {
     if let Some(reqres) = inner.as_v4_http_mut() {
@@ -1831,6 +1849,7 @@ pub extern "C" fn pactffi_with_body(
     content_type: *const c_char,
     body: *const c_char,
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_body; interaction, part, content_type, body);
     trace!(
         ">>> pactffi_with_body({:?}, {:?}, {:?}, {:?})",
         interaction,
@@ -1995,6 +2014,7 @@ pub extern "C" fn pactffi_with_binary_body(
   body: *const u8,
   size: size_t
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_binary_body; interaction, part, content_type, body, size);
   trace!(">>> pactffi_with_binary_body({:?}, {:?}, {:?}, {:?}, {})", interaction, part, content_type, body, size);
   let content_type = convert_cstr("content_type", content_type)
     .unwrap_or("application/octet-stream");
@@ -2098,6 +2118,7 @@ pub extern "C" fn pactffi_with_binary_file(
   body: *const u8,
   size: size_t
 ) -> bool {
+  let _monitor = crate::monitor_call!(pactffi_with_binary_file; interaction, part, content_type, body, size);
   trace!(">>> pactffi_with_binary_file({:?}, {:?}, {:?}, {:?}, {})", interaction, part, content_type, body, size);
   let content_type_header = "Content-Type".to_string();
   let support_content_type_matching_rule = interaction.with_pact(
@@ -2390,6 +2411,7 @@ pub extern "C" fn pactffi_with_multipart_file_v2(
   part_name: *const c_char,
   boundary: *const c_char
 ) -> StringResult {
+  let _monitor = crate::monitor_call!(pactffi_with_multipart_file_v2; interaction, part, content_type, file, part_name, boundary);
   let part_name = convert_cstr("part_name", part_name).unwrap_or("file");
   match convert_cstr("content_type", content_type) {
     Some(content_type) => {
@@ -2480,6 +2502,7 @@ pub extern "C" fn pactffi_with_multipart_file(
   file: *const c_char,
   part_name: *const c_char
 ) -> StringResult {
+  let _monitor = crate::monitor_call!(pactffi_with_multipart_file; interaction, part, content_type, file, part_name);
   pactffi_with_multipart_file_v2(interaction, part, content_type, file, part_name, std::ptr::null())
 }
 
@@ -2873,6 +2896,7 @@ ffi_fn! {
 /// function to release its resources.
 #[no_mangle]
 pub extern "C" fn pactffi_new_message_pact(consumer_name: *const c_char, provider_name: *const c_char) -> MessagePactHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_message_pact; consumer_name, provider_name);
   let consumer = convert_cstr("consumer_name", consumer_name).unwrap_or("Consumer");
   let provider = convert_cstr("provider_name", provider_name).unwrap_or("Provider");
   MessagePactHandle::new(consumer, provider)
@@ -2885,6 +2909,7 @@ pub extern "C" fn pactffi_new_message_pact(consumer_name: *const c_char, provide
 /// Returns a new `MessageHandle`.
 #[no_mangle]
 pub extern "C" fn pactffi_new_message(pact: MessagePactHandle, description: *const c_char) -> MessageHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_message; pact, description);
   if let Some(description) = convert_cstr("description", description) {
     pact.with_pact(&|_, inner, _| {
       let message = AsynchronousMessage {
@@ -2904,6 +2929,7 @@ pub extern "C" fn pactffi_new_message(pact: MessagePactHandle, description: *con
 /// * `description` - The message description. It needs to be unique for each message.
 #[no_mangle]
 pub extern "C" fn pactffi_message_expects_to_receive(message: MessageHandle, description: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_message_expects_to_receive; message, description);
   if let Some(description) = convert_cstr("description", description) {
     message.with_message(&|_, inner, _| {
       inner.set_description(description);
@@ -2916,6 +2942,7 @@ pub extern "C" fn pactffi_message_expects_to_receive(message: MessageHandle, des
 /// * `description` - The provider state description. It needs to be unique for each message
 #[no_mangle]
 pub extern "C" fn pactffi_message_given(message: MessageHandle, description: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_message_given; message, description);
   if let Some(description) = convert_cstr("description", description) {
     message.with_message(&|_, inner, _| {
       inner.provider_states_mut().push(ProviderState::default(&description.to_string()));
@@ -2934,6 +2961,7 @@ pub extern "C" fn pactffi_message_given(message: MessageHandle, description: *co
 #[no_mangle]
 pub extern "C" fn pactffi_message_given_with_param(message: MessageHandle, description: *const c_char,
                                                name: *const c_char, value: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_message_given_with_param; message, description, name, value);
   if let Some(description) = convert_cstr("description", description) {
     if let Some(name) = convert_cstr("name", name) {
       let value = convert_cstr("value", value).unwrap_or_default();
@@ -2971,6 +2999,7 @@ pub extern "C" fn pactffi_message_given_with_param(message: MessageHandle, descr
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn pactffi_message_with_contents(message_handle: MessageHandle, content_type: *const c_char, body: *const u8, size: size_t) {
+  let _monitor = crate::monitor_call!(pactffi_message_with_contents; message_handle, content_type, body, size);
   let content_type = convert_cstr("content_type", content_type).unwrap_or("text/plain");
   trace!("pactffi_message_with_contents(message_handle: {:?}, content_type: {:?}, body: {:?}, size: {})", message_handle, content_type, body, size);
 
@@ -3005,6 +3034,7 @@ pub extern "C" fn pactffi_message_with_contents(message_handle: MessageHandle, c
 #[no_mangle]
 #[deprecated(note = "Replaced with `pactffi_with_metadata`")]
 pub extern "C" fn pactffi_message_with_metadata(message_handle: MessageHandle, key: *const c_char, value: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_message_with_metadata; message_handle, key, value);
   if let Some(key) = convert_cstr("key", key) {
     let value = convert_cstr("value", value).unwrap_or_default();
     message_handle.with_message(&|_, inner, _| {
@@ -3034,6 +3064,7 @@ pub extern "C" fn pactffi_message_with_metadata(message_handle: MessageHandle, k
 #[no_mangle]
 #[deprecated(note = "Replaced with `pactffi_with_metadata`")]
 pub extern "C" fn pactffi_message_with_metadata_v2(message_handle: MessageHandle, key: *const c_char, value: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_message_with_metadata_v2; message_handle, key, value);
   if let Some(key) = convert_cstr("key", key) {
     let value = convert_cstr("value", value).unwrap_or_default();
     trace!("pactffi_message_with_metadata_v2(message_handle: {:?}, key: {:?}, value: {})", message_handle, key, value);
@@ -3071,6 +3102,7 @@ pub extern "C" fn pactffi_message_with_metadata_v2(message_handle: MessageHandle
 /// that has a Tokio runtime in its call stack can result in a deadlock.
 #[no_mangle]
 pub extern "C" fn pactffi_message_reify(message_handle: MessageHandle) -> *const c_char {
+  let _monitor = crate::monitor_call!(pactffi_message_reify; message_handle);
   let res = message_handle.with_message(&|_, inner, spec_version| {
     trace!("pactffi_message_reify(message: {:?}, spec_version: {})", inner, spec_version);
     if let Some(message) = inner.as_v4_async_message() {
@@ -3119,6 +3151,7 @@ pub extern "C" fn pactffi_message_reify(message_handle: MessageHandle) -> *const
 /// | 2 | The message pact for the given handle was not found |
 #[no_mangle]
 pub extern "C" fn pactffi_write_message_pact_file(pact: MessagePactHandle, directory: *const c_char, overwrite: bool) -> i32 {
+  let _monitor = crate::monitor_call!(pactffi_write_message_pact_file; pact, directory, overwrite);
   let result = pact.with_pact(&|_, inner, spec_version| {
     let filename = path_from_dir(directory, Some(inner.default_file_name().as_str()));
     write_pact(inner.boxed(), &filename.unwrap_or_else(|| PathBuf::from(inner.default_file_name().as_str())), spec_version, overwrite)
@@ -3147,6 +3180,7 @@ pub extern "C" fn pactffi_write_message_pact_file(pact: MessagePactHandle, direc
 /// * `value` - the value to set
 #[no_mangle]
 pub extern "C" fn pactffi_with_message_pact_metadata(pact: MessagePactHandle, namespace: *const c_char, name: *const c_char, value: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_with_message_pact_metadata; pact, namespace, name, value);
   pact.with_pact(&|_, inner, _| {
     let namespace = convert_cstr("namespace", namespace).unwrap_or_default();
     let name = convert_cstr("name", name).unwrap_or_default();
@@ -3247,6 +3281,7 @@ ffi_fn! {
 #[no_mangle]
 #[deprecated(note = "Replaced with new_message_interaction")]
 pub extern "C" fn pactffi_new_async_message(pact: PactHandle, description: *const c_char) -> MessageHandle {
+  let _monitor = crate::monitor_call!(pactffi_new_async_message; pact, description);
   if let Some(description) = convert_cstr("description", description) {
     pact.with_pact(&|_, inner| {
       let message = AsynchronousMessage {
@@ -3271,6 +3306,7 @@ pub extern "C" fn pactffi_new_async_message(pact: PactHandle, description: *cons
 ///
 #[no_mangle]
 pub extern "C" fn pactffi_free_pact_handle(pact: PactHandle) -> c_uint {
+  let _monitor = crate::monitor_call!(pactffi_free_pact_handle; pact);
   let mut handles = PACT_HANDLES.lock().unwrap();
   trace!("pactffi_free_pact_handle - removing pact with index {}", pact.pact_ref);
   handles.remove(&pact.pact_ref).map(|_| 0).unwrap_or(1)
@@ -3286,6 +3322,7 @@ pub extern "C" fn pactffi_free_pact_handle(pact: PactHandle) -> c_uint {
 ///
 #[no_mangle]
 pub extern "C" fn pactffi_free_message_pact_handle(pact: MessagePactHandle) -> c_uint {
+  let _monitor = crate::monitor_call!(pactffi_free_message_pact_handle; pact);
   let mut handles = PACT_HANDLES.lock().unwrap();
   handles.remove(&pact.pact_ref).map(|_| 0).unwrap_or(1)
 }

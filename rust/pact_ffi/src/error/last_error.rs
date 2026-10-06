@@ -14,6 +14,7 @@ thread_local! {
 /// Update the last error with a new error message.
 #[inline]
 pub(crate) fn set_error_msg(e: String) {
+    crate::monitor::error(&e);
     LAST_ERROR.with(|last| {
         *last.borrow_mut() = Some(e);
     });

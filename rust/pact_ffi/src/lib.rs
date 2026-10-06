@@ -28,6 +28,7 @@ use crate::util::*;
 
 pub mod error;
 pub mod log;
+pub mod monitor;
 pub mod models;
 pub(crate) mod util;
 pub mod mock_server;
@@ -61,6 +62,7 @@ lazy_static! {
 /// Returns the current library version
 #[no_mangle]
 pub extern "C" fn pactffi_version() -> *const c_char {
+  let _monitor = crate::monitor_call!(pactffi_version; );
     VERSION.as_ptr() as *const c_char
 }
 
@@ -73,6 +75,7 @@ pub extern "C" fn pactffi_version() -> *const c_char {
 /// log_env_var must be a valid NULL terminated UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_init(log_env_var: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_init; log_env_var);
     let log_env_var = if !log_env_var.is_null() {
         let c_str = CStr::from_ptr(log_env_var);
         match c_str.to_str() {
@@ -114,6 +117,7 @@ pub unsafe extern "C" fn pactffi_init(log_env_var: *const c_char) {
 /// Exported functions are inherently unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_init_with_log_level(level: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_init_with_log_level; level);
   let log_level = log_level_filter_from_c_char(level);
   let subscriber = FmtSubscriber::builder()
     .with_max_level(log_level)
@@ -141,6 +145,7 @@ pub unsafe extern "C" fn pactffi_init_with_log_level(level: *const c_char) {
 #[no_mangle]
 #[cfg(windows)]
 pub extern "C" fn pactffi_enable_ansi_support() {
+  let _monitor = crate::monitor_call!(pactffi_enable_ansi_support; );
   if let Err(err) = ansi_term::enable_ansi_support() {
     warn!("Could not enable ANSI console support - {err}");
   }
@@ -153,7 +158,8 @@ pub extern "C" fn pactffi_enable_ansi_support() {
 /// This function is safe.
 #[no_mangle]
 #[cfg(not(windows))]
-pub extern "C" fn pactffi_enable_ansi_support() { }
+pub extern "C" fn pactffi_enable_ansi_support() {
+  let _monitor = crate::monitor_call!(pactffi_enable_ansi_support; ); }
 
 /// Log using the shared core logging facility.
 ///
@@ -168,6 +174,7 @@ pub extern "C" fn pactffi_enable_ansi_support() { }
 /// This function will fail if any of the pointers passed to it are invalid.
 #[no_mangle]
 pub unsafe extern "C" fn pactffi_log_message(source: *const c_char, log_level: *const c_char, message: *const c_char) {
+  let _monitor = crate::monitor_call!(pactffi_log_message; source, log_level, message);
   let target = convert_cstr("target", source).unwrap_or("client");
 
   if !message.is_null() {

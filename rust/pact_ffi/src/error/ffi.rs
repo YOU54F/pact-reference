@@ -48,6 +48,7 @@ pub extern "C" fn pactffi_get_error_message(
     buffer: *mut c_char,
     length: c_int,
 ) -> c_int {
+  let _monitor = crate::monitor_call!(pactffi_get_error_message; buffer, length);
     // Make sure the buffer isn't null.
     if buffer.is_null() {
         return Status::NullBuffer as c_int;
