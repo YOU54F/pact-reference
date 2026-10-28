@@ -1123,9 +1123,7 @@ impl MatchingRuleCategory {
     Value::Object(self.rules.iter().fold(serde_json::Map::new(), |mut map, (category, rulelist)| {
       match self.name {
         Category::HEADER | Category::QUERY => {
-          let name = category.first_field().map(|v| v.to_string())
-            .unwrap_or_else(|| category.to_string());
-          map.insert(name, rulelist.to_v3_json());
+          map.insert(v3_field_key(category, self.rules.keys()), rulelist.to_v3_json());
         }
         _ => {
           map.insert(String::from(category), rulelist.to_v3_json());
@@ -1255,8 +1253,11 @@ impl MatchingRuleCategory {
         self.add_rule_list(DocPath::empty(), rules)?;
       } else if self.name == Category::QUERY || self.name == Category::HEADER {
         for (k, v) in m {
-          let mut path = DocPath::root();
-          path.push_field(k);
+          let path = indexed_field_path(k).unwrap_or_else(|| {
+            let mut path = DocPath::root();
+            path.push_field(k);
+            path
+          });
           self.add_rule_list(path, v)?;
         }
       } else {
@@ -1625,6 +1626,36 @@ impl Display for MatchingRules {
 
     Ok(())
   }
+}
+
+/// Key used for a header or query parameter rule or generator in V3+ format. Entries for a single
+/// value (`$.name[1]`) keep their full path, as the bare name would collide with the entries for
+/// the other values. An entry for the first value is written as the bare name when it is the only
+/// entry for that name, which is how it has always been written.
+pub(crate) fn v3_field_key<'a>(path: &DocPath, keys: impl Iterator<Item = &'a DocPath>) -> String {
+  match path.tokens().as_slice() {
+    [PathToken::Root, PathToken::Field(name)] => name.clone(),
+    [PathToken::Root, PathToken::Field(name), PathToken::Index(index)] => {
+      let mut keys = keys;
+      let shares_name = keys.any(|other| other != path && other.first_field() == Some(name.as_str()));
+      if *index == 0 && !shares_name {
+        name.clone()
+      } else {
+        path.to_string()
+      }
+    }
+    _ => path.first_field().map(|v| v.to_string()).unwrap_or_else(|| path.to_string())
+  }
+}
+
+/// Parses a V3+ header or query parameter key written for a single value (`$.name[1]` or
+/// `$['name'][1]`). Any other key is a plain header or parameter name.
+pub(crate) fn indexed_field_path(key: &str) -> Option<DocPath> {
+  if !key.starts_with('$') {
+    return None;
+  }
+  DocPath::new(key).ok().filter(|path| matches!(path.tokens().as_slice(),
+    [PathToken::Root, PathToken::Field(_), PathToken::Index(_)]))
 }
 
 /// Parses the matching rules from the Value structure
@@ -3017,5 +3048,88 @@ mod tests {
       "brand".to_string() => json!("visa")
     }));
     expect!(rule.can_cascade()).to(be_false());
+  }
+
+  fn indexed_field_rules(category: &str) -> MatchingRuleCategory {
+    let mut rules = MatchingRuleCategory::empty(category);
+    let path = DocPath::root().join("X-Request");
+    rules.add_rule(path.clone(), MatchingRule::Regex("^first-\\d+$".to_string()), RuleLogic::And);
+    rules.add_rule(path.join("1"), MatchingRule::Regex("^second-\\d+$".to_string()), RuleLogic::And);
+    rules
+  }
+
+  #[test]
+  fn to_v3_json_keeps_rules_for_each_header_and_query_value() {
+    let mut matching_rules = MatchingRules::default();
+    matching_rules.add_rules("header", indexed_field_rules("header"));
+    matching_rules.add_rules("query", indexed_field_rules("query"));
+
+    let expected = json!({
+      "X-Request": {
+        "combine": "AND",
+        "matchers": [ { "match": "regex", "regex": "^first-\\d+$" } ]
+      },
+      "$['X-Request'][1]": {
+        "combine": "AND",
+        "matchers": [ { "match": "regex", "regex": "^second-\\d+$" } ]
+      }
+    });
+    for spec in [PactSpecification::V3, PactSpecification::V4] {
+      let json = matchers_to_json(&matching_rules, &spec);
+      assert_eq!(json, json!({ "header": expected, "query": expected }));
+    }
+  }
+
+  #[test]
+  fn rules_for_each_header_and_query_value_round_trip_through_json() {
+    let mut matching_rules = MatchingRules::default();
+    matching_rules.add_rules("header", indexed_field_rules("header"));
+    matching_rules.add_rules("query", indexed_field_rules("query"));
+
+    let json = json!({ "matchingRules": matchers_to_json(&matching_rules, &PactSpecification::V4) });
+    let loaded = matchers_from_json(&json, &None).unwrap();
+
+    assert_eq!(loaded, matching_rules);
+  }
+
+  #[test]
+  fn to_v3_json_writes_a_lone_first_value_rule_as_the_bare_name() {
+    let mut rules = MatchingRuleCategory::empty("query");
+    rules.add_rule(DocPath::root().join("a").join("0"), MatchingRule::Type, RuleLogic::And);
+
+    expect!(rules.to_v3_json()).to(be_equal_to(json!({
+      "a": { "combine": "AND", "matchers": [ { "match": "type" } ] }
+    })));
+  }
+
+  #[test]
+  fn to_v3_json_keeps_the_first_value_index_when_other_values_have_rules() {
+    let mut rules = MatchingRuleCategory::empty("query");
+    let path = DocPath::root().join("a");
+    rules.add_rule(path.join("0"), MatchingRule::Type, RuleLogic::And);
+    rules.add_rule(path.join("1"), MatchingRule::Integer, RuleLogic::And);
+
+    expect!(rules.to_v3_json()).to(be_equal_to(json!({
+      "$.a[0]": { "combine": "AND", "matchers": [ { "match": "type" } ] },
+      "$.a[1]": { "combine": "AND", "matchers": [ { "match": "integer" } ] }
+    })));
+  }
+
+  #[test]
+  fn add_v3_rules_from_json_treats_bracketed_names_as_plain_names() {
+    let mut rules = MatchingRuleCategory::empty("query");
+    rules.add_v3_rules_from_json(&json!({
+      "ids[0]": { "matchers": [ { "match": "type" } ] },
+      "$filter": { "matchers": [ { "match": "type" } ] },
+      "$.a[2]": { "matchers": [ { "match": "type" } ] }
+    })).unwrap();
+
+    let mut paths = rules.rules.keys().map(|p| p.tokens().clone()).collect::<Vec<_>>();
+    paths.sort_by_key(|tokens| format!("{:?}", tokens));
+    expect!(paths).to(be_equal_to(vec![
+      vec![PathToken::Root, PathToken::Field("$filter".to_string())],
+      vec![PathToken::Root, PathToken::Field("a".to_string()), PathToken::Index(2)],
+      vec![PathToken::Root, PathToken::Field("ids[0]".to_string())]
+    ]));
   }
 }
