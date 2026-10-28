@@ -2644,3 +2644,43 @@ fn https_mock_server_starts_and_responds_over_tls() {
   expect!(matched).to(be_true());
   expect!(mismatches).to(be_equal_to("[]"));
 }
+
+// Each value of a repeated header or query parameter can have its own matcher. These must all
+// survive being written to a pact file and read back.
+#[test]
+fn matchers_for_each_header_and_query_value_survive_writing_the_pact_file() {
+  let pact_handle = PactHandle::new("IndexedMatchersC", "IndexedMatchersP");
+  pactffi_with_specification(pact_handle, PactSpecification::V4);
+  let description = CString::new("repeated values with matchers").unwrap();
+  let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+  let method = CString::new("GET").unwrap();
+  let path = CString::new("/request").unwrap();
+  pactffi_with_request(i_handle, method.as_ptr(), path.as_ptr());
+  let name = CString::new("X-Request").unwrap();
+  let first = CString::new(r#"{"value":"first-1","pact:matcher:type":"regex","regex":"^first-\\d+$"}"#).unwrap();
+  let second = CString::new(r#"{"value":"second-1","pact:matcher:type":"regex","regex":"^second-\\d+$"}"#).unwrap();
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, name.as_ptr(), 0, first.as_ptr());
+  pactffi_with_header_v2(i_handle, InteractionPart::Request, name.as_ptr(), 1, second.as_ptr());
+  pactffi_with_query_parameter_v2(i_handle, name.as_ptr(), 0, first.as_ptr());
+  pactffi_with_query_parameter_v2(i_handle, name.as_ptr(), 1, second.as_ptr());
+  pactffi_response_status(i_handle, 200);
+
+  let tmp = TempDir::new().unwrap();
+  let tmp_dir = CString::new(tmp.path().to_string_lossy().as_bytes().to_vec()).unwrap();
+  let result = pactffi_pact_handle_write_file(pact_handle, tmp_dir.as_ptr(), true);
+  let file_name = pact_default_file_name(&pact_handle);
+  pactffi_free_pact_handle(pact_handle);
+  expect!(result).to(be_equal_to(0));
+
+  let pact = pact_models::pact::read_pact(&tmp.path().join(file_name.unwrap())).unwrap();
+  let request = pact.interactions()[0].as_request_response().unwrap().request;
+  for category in ["header", "query"] {
+    let rules = request.matching_rules.rules_for_category(category).unwrap();
+    // Adding a matcher for a later value moves the first value's matcher to index 0
+    let base = DocPath::root().join("X-Request");
+    expect!(rules.rules.get(&base.join("0")).map(|r| r.rules.clone()))
+      .to(be_some().value(vec![MatchingRule::Regex("^first-\\d+$".to_string())]));
+    expect!(rules.rules.get(&base.join("1")).map(|r| r.rules.clone()))
+      .to(be_some().value(vec![MatchingRule::Regex("^second-\\d+$".to_string())]));
+  }
+}

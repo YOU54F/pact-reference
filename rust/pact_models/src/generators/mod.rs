@@ -26,7 +26,7 @@ use crate::bodies::OptionalBody;
 use crate::expression_parser::{contains_expressions, DataType, DataValue, MapValueResolver, parse_expression};
 #[cfg(feature = "datetime")] use crate::generators::datetime_expressions::{execute_date_expression, execute_datetime_expression, execute_time_expression};
 use crate::json_utils::{get_field_as_string, json_to_string, JsonToNum, resolve_path};
-use crate::matchingrules::{Category, MatchingRuleCategory};
+use crate::matchingrules::{Category, MatchingRuleCategory, indexed_field_path, v3_field_key};
 use crate::PactSpecification;
 use crate::path_exp::DocPath;
 use crate::plugins::plugin_support;
@@ -667,7 +667,9 @@ impl Generators {
               match sub_v {
                 &Value::Object(ref map) => {
                   if *category == GeneratorCategory::QUERY || *category == GeneratorCategory::HEADER {
-                    self.parse_generator_from_map(category, map, Some(DocPath::root().push_field(sub_k).clone()));
+                    let path = indexed_field_path(sub_k)
+                      .unwrap_or_else(|| DocPath::root().push_field(sub_k).clone());
+                    self.parse_generator_from_map(category, map, Some(path));
                   } else {
                     self.parse_generator_from_map(category, map, Some(DocPath::new(sub_k)?));
                   }
@@ -726,9 +728,7 @@ impl Generators {
           for (key, val) in category {
             let json = val.to_json();
             if let Some(json) = json {
-              let name = key.first_field().map(|v| v.to_string())
-                .unwrap_or_else(|| key.to_string());
-              generators.insert(name, json);
+              generators.insert(v3_field_key(key, category.keys()), json);
             }
           }
           map.insert(cat.clone(), Value::Object(generators));
@@ -2435,6 +2435,26 @@ mod tests {
 
     let json = generators_to_json(&generators, &PactSpecification::V3);
     expect!(json.to_string()).to_not(be_equal_to("{}"));
+  }
+
+  #[test]
+  fn generators_for_each_header_and_query_value_round_trip_through_json() {
+    let path = DocPath::root().join("X-Request");
+    let mut generators = Generators::default();
+    for category in [GeneratorCategory::HEADER, GeneratorCategory::QUERY] {
+      generators.add_generator_with_subcategory(&category, path.clone(), Generator::RandomInt(1, 10));
+      generators.add_generator_with_subcategory(&category, path.join("1"), Generator::RandomInt(20, 30));
+    }
+
+    let json = generators_to_json(&generators, &PactSpecification::V4);
+    let expected = json!({
+      "X-Request": { "type": "RandomInt", "min": 1, "max": 10 },
+      "$['X-Request'][1]": { "type": "RandomInt", "min": 20, "max": 30 }
+    });
+    assert_eq!(json, json!({ "header": expected, "query": expected }));
+
+    let loaded = generators_from_json(&json!({ "generators": json })).unwrap();
+    assert_eq!(loaded, generators);
   }
 
   #[test]
