@@ -8,13 +8,16 @@ description = "Pact compatibility suite driven only through the pact_ffi C ABI, 
 [dependencies]
 anyhow = "1"
 base64 = "0.22"
+bytes = "1"
 cucumber = "0.23"
+h2 = "0.4"
+http = "1"
 libloading = "0.8"
 regex = "1"
 reqwest = { version = "0.12", default-features = false }
 roxmltree = "0.20"
 serde_json = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
 url = "2"
 
 [build-dependencies]
@@ -38,4 +41,8 @@ harness = false
 
 [[test]]
 name = "message"
+harness = false
+
+[[test]]
+name = "plugins"
 harness = false

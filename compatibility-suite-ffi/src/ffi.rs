@@ -535,3 +535,35 @@ pub fn async_body_generators_with_context(pact: PactHandle, context: &str) -> Ve
   trace::call("pactffi_pact_async_message_iter_delete(iter)".into(), "void");
   out
 }
+
+// ---- Plugins ----
+
+/// The FFI's last error on this thread (`LAST_ERROR`), which `pactffi_using_plugin` sets when it fails.
+pub fn last_error() -> Option<String> {
+  let mut buf = vec![0u8; 4096];
+  let n = unsafe { lib().pactffi_get_error_message(buf.as_mut_ptr() as *mut c_char, buf.len() as i32) };
+  let r = (n > 0).then(|| CStr::from_bytes_until_nul(&buf).map(|s| s.to_string_lossy().into_owned()).unwrap_or_default());
+  trace::call(format!("pactffi_get_error_message(buffer, {})", buf.len()), r.as_deref().map(lit).unwrap_or(n.to_string()));
+  r
+}
+
+/// 0 is success; 2 means the plugin could not be loaded, with the reason in `last_error`.
+pub fn using_plugin(pact: PactHandle, name: &str, version: Option<&str>) -> u32 {
+  let (version_c, version_lit) = opt(version);
+  let r = unsafe { lib().pactffi_using_plugin(pact, c(name).as_ptr(), opt_ptr(&version_c)) };
+  trace::call(format!("pactffi_using_plugin({pact}, {}, {version_lit})", lit(name)), r);
+  r
+}
+
+/// `contents` is the plugin's JSON configuration for the part. 0 is success; 6 is an error from the plugin.
+pub fn interaction_contents(i: InteractionHandle, p: InteractionPart, content_type: &str, contents: &str) -> u32 {
+  let r = unsafe { lib().pactffi_interaction_contents(i, p, c(content_type).as_ptr(), c(contents).as_ptr()) };
+  trace::call(format!("pactffi_interaction_contents({i}, {}, {}, {})", part(p), lit(content_type), lit(contents)), r);
+  r
+}
+
+/// Releases the pact's hold on its plugins; a plugin no other pact uses is shut down.
+pub fn cleanup_plugins(pact: PactHandle) {
+  unsafe { lib().pactffi_cleanup_plugins(pact) };
+  trace::call(format!("pactffi_cleanup_plugins({pact})"), "void");
+}
