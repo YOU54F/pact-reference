@@ -161,7 +161,8 @@ fn body_fixture(file: &str) -> (String, String) {
   let text = |name: &str| {
     doc.root_element().children().find(|n| n.has_tag_name(name)).map(|n| {
       let s: String = n.children().filter_map(|c| c.text()).map(str::trim).collect();
-      if n.attribute("eol") == Some("CRLF") && !cfg!(windows) { s.replace('\n', "\r\n") } else { s }
+      // The XML parser normalises line endings to LF, even on a Windows checkout with CRLF files
+      if n.attribute("eol") == Some("CRLF") { s.replace("\r\n", "\n").replace('\n', "\r\n") } else { s }
     })
   };
   (text("contentType").unwrap_or_else(|| "text/plain".into()), text("contents").unwrap_or_default())
