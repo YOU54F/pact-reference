@@ -39,3 +39,7 @@ harness = false
 [[test]]
 name = "message"
 harness = false
+
+[[test]]
+name = "plugins"
+harness = false
