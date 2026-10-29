@@ -3,11 +3,38 @@ use maplit::hashmap;
 use pact_models::matchingrules;
 use pact_models::matchingrules::MatchingRule;
 use pact_models::prelude::v4::SynchronousHttp;
-use pact_models::v4::http_parts::HttpRequest;
+use pact_models::v4::http_parts::{HttpRequest, HttpResponse};
 use pact_models::v4::interaction::V4Interaction;
 
-use crate::engine::{execute_request_plan, ExecutionPlan, setup_header_plan};
+use crate::engine::{
+  build_request_plan, build_response_plan, execute_request_plan, execute_response_plan,
+  ExecutionPlan, NodeResult, NodeValue, setup_header_plan
+};
 use crate::engine::context::PlanMatchingContext;
+use crate::repeated_headers::cases;
+
+#[test]
+fn match_repeated_custom_headers_in_request_and_response_plans() {
+  let expected_headers = Some(hashmap! {
+    "X-Request".to_string() => vec!["request1".to_string(), "request2".to_string()]
+  });
+  let actual_headers = Some(hashmap! {
+    "X-Request".to_string() => vec!["request1, request2".to_string()]
+  });
+  let context = PlanMatchingContext::default();
+
+  let expected_request = HttpRequest { headers: expected_headers.clone(), ..HttpRequest::default() };
+  let actual_request = HttpRequest { headers: actual_headers.clone(), ..HttpRequest::default() };
+  let request_plan = build_request_plan(&expected_request, &context).unwrap();
+  let request_result = execute_request_plan(&request_plan, &actual_request, &context).unwrap();
+  assert_eq!(request_result.plan_root.result, Some(NodeResult::VALUE(NodeValue::BOOL(true))));
+
+  let expected_response = HttpResponse { headers: expected_headers, ..HttpResponse::default() };
+  let actual_response = HttpResponse { headers: actual_headers, ..HttpResponse::default() };
+  let response_plan = build_response_plan(&expected_response, &context).unwrap();
+  let response_result = execute_response_plan(&response_plan, &actual_response, &context).unwrap();
+  assert_eq!(response_result.plan_root.result, Some(NodeResult::VALUE(NodeValue::BOOL(true))));
+}
 
 #[test]
 fn match_headers_where_there_are_none() {
@@ -62,11 +89,22 @@ fn match_headers_with_expected_headers() {
           %check:exists (
             $.headers['HEADER-X']
           ),
-          %match:equality (
-            'b',
-            $.headers['HEADER-X'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['HEADER-X']
+            ),
+            %header:match-repeated (
+              'HEADER-X',
+              ['b'],
+              $.headers['HEADER-X'],
+              json:{}
+            ),
+            %match:equality (
+              'b',
+              $.headers['HEADER-X'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'HEADER-X\' but was missing'
@@ -104,11 +142,22 @@ fn match_headers_with_expected_headers() {
           %check:exists (
             $.headers['HEADER-X'] => NULL
           ) => BOOL(false),
-          %match:equality (
-            'b',
-            $.headers['HEADER-X'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['HEADER-X']
+            ),
+            %header:match-repeated (
+              'HEADER-X',
+              ['b'],
+              $.headers['HEADER-X'],
+              json:{}
+            ),
+            %match:equality (
+              'b',
+              $.headers['HEADER-X'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'HEADER-X\' but was missing' => 'Expected header \'HEADER-X\' but was missing'
@@ -151,11 +200,22 @@ fn match_headers_with_expected_headers() {
           %check:exists (
             $.headers['HEADER-X'] => 'b'
           ) => BOOL(true),
-          %match:equality (
-            'b' => 'b',
-            $.headers['HEADER-X'] => 'b',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['HEADER-X'] => 'b'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'HEADER-X',
+              ['b'],
+              $.headers['HEADER-X'],
+              json:{}
+            ),
+            %match:equality (
+              'b' => 'b',
+              $.headers['HEADER-X'] => 'b',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'HEADER-X\' but was missing'
@@ -198,12 +258,23 @@ fn match_headers_with_expected_headers() {
           %check:exists (
             $.headers['HEADER-X'] => 'C'
           ) => BOOL(true),
-          %match:equality (
-            'b' => 'b',
-            $.headers['HEADER-X'] => 'C',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
-          ) => ERROR(Expected 'C' to be equal to 'b'),
+          %if (
+            %header:repeated (
+              $.headers['HEADER-X'] => 'C'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'HEADER-X',
+              ['b'],
+              $.headers['HEADER-X'],
+              json:{}
+            ),
+            %match:equality (
+              'b' => 'b',
+              $.headers['HEADER-X'] => 'C',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => ERROR(Expected 'C' to be equal to 'b')
+          ) => BOOL(false),
           %error (
             'Expected header \'HEADER-X\' but was missing'
           )
@@ -246,11 +317,22 @@ fn match_headers_with_expected_headers() {
           %check:exists (
             $.headers['HEADER-X'] => 'b'
           ) => BOOL(true),
-          %match:equality (
-            'b' => 'b',
-            $.headers['HEADER-X'] => 'b',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['HEADER-X'] => 'b'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'HEADER-X',
+              ['b'],
+              $.headers['HEADER-X'],
+              json:{}
+            ),
+            %match:equality (
+              'b' => 'b',
+              $.headers['HEADER-X'] => 'b',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'HEADER-X\' but was missing'
@@ -293,11 +375,22 @@ fn match_headers_with_expected_headers() {
           %check:exists (
             $.headers['HEADER-X'] => NULL
           ) => BOOL(false),
-          %match:equality (
-            'b',
-            $.headers['HEADER-X'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['HEADER-X']
+            ),
+            %header:match-repeated (
+              'HEADER-X',
+              ['b'],
+              $.headers['HEADER-X'],
+              json:{}
+            ),
+            %match:equality (
+              'b',
+              $.headers['HEADER-X'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'HEADER-X\' but was missing' => 'Expected header \'HEADER-X\' but was missing'
@@ -359,11 +452,22 @@ fn match_headers_with_matching_rule() {
           %check:exists (
             $.headers['REF-CODE']
           ),
-          %match:equality (
-            'test',
-            $.headers['REF-CODE'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE']
+            ),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test',
+              $.headers['REF-CODE'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -376,11 +480,22 @@ fn match_headers_with_matching_rule() {
           %check:exists (
             $.headers['REF-ID']
           ),
-          %match:regex (
-            '1234',
-            $.headers['REF-ID'],
-            json:{"regex":"^[0-9]+$"},
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID']
+            ),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"regex","regex":"^[0-9]+$"}]}}
+            ),
+            %match:regex (
+              '1234',
+              $.headers['REF-ID'],
+              json:{"regex":"^[0-9]+$"},
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -424,11 +539,22 @@ fn match_headers_with_matching_rule() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -441,11 +567,22 @@ fn match_headers_with_matching_rule() {
           %check:exists (
             $.headers['REF-ID'] => '9023470945622'
           ) => BOOL(true),
-          %match:regex (
-            '1234' => '1234',
-            $.headers['REF-ID'] => '9023470945622',
-            json:{"regex":"^[0-9]+$"} => json:{"regex":"^[0-9]+$"},
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => '9023470945622'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"regex","regex":"^[0-9]+$"}]}}
+            ),
+            %match:regex (
+              '1234' => '1234',
+              $.headers['REF-ID'] => '9023470945622',
+              json:{"regex":"^[0-9]+$"} => json:{"regex":"^[0-9]+$"},
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -489,11 +626,22 @@ fn match_headers_with_matching_rule() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -506,12 +654,23 @@ fn match_headers_with_matching_rule() {
           %check:exists (
             $.headers['REF-ID'] => '9023470X945622'
           ) => BOOL(true),
-          %match:regex (
-            '1234' => '1234',
-            $.headers['REF-ID'] => '9023470X945622',
-            json:{"regex":"^[0-9]+$"} => json:{"regex":"^[0-9]+$"},
-            BOOL(false) => BOOL(false)
-          ) => ERROR(Expected '9023470X945622' to match '^[0-9]+$'),
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => '9023470X945622'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"regex","regex":"^[0-9]+$"}]}}
+            ),
+            %match:regex (
+              '1234' => '1234',
+              $.headers['REF-ID'] => '9023470X945622',
+              json:{"regex":"^[0-9]+$"} => json:{"regex":"^[0-9]+$"},
+              BOOL(false) => BOOL(false)
+            ) => ERROR(Expected '9023470X945622' to match '^[0-9]+$')
+          ) => BOOL(false),
           %error (
             'Expected header \'REF-ID\' but was missing'
           )
@@ -568,11 +727,11 @@ fn match_headers_with_values_having_different_lengths() {
           %check:exists (
             $.headers['REF-CODE']
           ),
-          %match:equality (
+          %header:match-repeated (
+            'REF-CODE',
             ['test', 'test2'],
             $.headers['REF-CODE'],
-            NULL,
-            BOOL(false)
+            json:{}
           ),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -585,11 +744,22 @@ fn match_headers_with_values_having_different_lengths() {
           %check:exists (
             $.headers['REF-ID']
           ),
-          %match:equality (
-            '1234',
-            $.headers['REF-ID'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID']
+            ),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{}
+            ),
+            %match:equality (
+              '1234',
+              $.headers['REF-ID'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -633,11 +803,11 @@ fn match_headers_with_values_having_different_lengths() {
           %check:exists (
             $.headers['REF-CODE'] => ['test', 'test2']
           ) => BOOL(true),
-          %match:equality (
+          %header:match-repeated (
+            'REF-CODE' => 'REF-CODE',
             ['test', 'test2'] => ['test', 'test2'],
             $.headers['REF-CODE'] => ['test', 'test2'],
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+            json:{} => json:{}
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -650,11 +820,22 @@ fn match_headers_with_values_having_different_lengths() {
           %check:exists (
             $.headers['REF-ID'] => '1234'
           ) => BOOL(true),
-          %match:equality (
-            '1234' => '1234',
-            $.headers['REF-ID'] => '1234',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => '1234'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{}
+            ),
+            %match:equality (
+              '1234' => '1234',
+              $.headers['REF-ID'] => '1234',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -698,12 +879,12 @@ fn match_headers_with_values_having_different_lengths() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
+          %header:match-repeated (
+            'REF-CODE' => 'REF-CODE',
             ['test', 'test2'] => ['test', 'test2'],
             $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
-          ) => ERROR(Expected 'test' to be equal to ['test', 'test2']),
+            json:{} => json:{}
+          ) => ERROR(Mismatch with header 'REF-CODE': Expected 'test' to be equal to 'test, test2'),
           %error (
             'Expected header \'REF-CODE\' but was missing'
           )
@@ -715,12 +896,23 @@ fn match_headers_with_values_having_different_lengths() {
           %check:exists (
             $.headers['REF-ID'] => ['1234', '1234', '4567']
           ) => BOOL(true),
-          %match:equality (
-            '1234' => '1234',
-            $.headers['REF-ID'] => ['1234', '1234', '4567'],
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
-          ) => ERROR(Expected ['1234', '1234', '4567'] to be equal to '1234'),
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => ['1234', '1234', '4567']
+            ) => BOOL(true),
+            %header:match-repeated (
+              'REF-ID' => 'REF-ID',
+              ['1234'] => ['1234'],
+              $.headers['REF-ID'] => ['1234', '1234', '4567'],
+              json:{} => json:{}
+            ) => ERROR(Mismatch with header 'REF-ID': Expected '1234, 1234, 4567' to be equal to '1234'),
+            %match:equality (
+              '1234',
+              $.headers['REF-ID'],
+              NULL,
+              BOOL(false)
+            )
+          ) => BOOL(false),
           %error (
             'Expected header \'REF-ID\' but was missing'
           )
@@ -781,11 +973,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-CODE']
           ),
-          %match:equality (
-            'test',
-            $.headers['REF-CODE'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE']
+            ),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test',
+              $.headers['REF-CODE'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -798,11 +1001,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-ID']
           ),
-          %match:integer (
-            '1234',
-            $.headers['REF-ID'],
-            json:{},
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID']
+            ),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}}
+            ),
+            %match:integer (
+              '1234',
+              $.headers['REF-ID'],
+              json:{},
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -846,11 +1060,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -863,11 +1088,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-ID'] => '9023470945622'
           ) => BOOL(true),
-          %match:integer (
-            '1234' => '1234',
-            $.headers['REF-ID'] => '9023470945622',
-            json:{} => json:{},
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => '9023470945622'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}}
+            ),
+            %match:integer (
+              '1234' => '1234',
+              $.headers['REF-ID'] => '9023470945622',
+              json:{} => json:{},
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -911,11 +1147,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -928,12 +1175,23 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-ID'] => '9023470X945622'
           ) => BOOL(true),
-          %match:integer (
-            '1234' => '1234',
-            $.headers['REF-ID'] => '9023470X945622',
-            json:{} => json:{},
-            BOOL(false) => BOOL(false)
-          ) => ERROR(Expected '9023470X945622' to match an integer number),
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => '9023470X945622'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-ID',
+              ['1234'],
+              $.headers['REF-ID'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}}
+            ),
+            %match:integer (
+              '1234' => '1234',
+              $.headers['REF-ID'] => '9023470X945622',
+              json:{} => json:{},
+              BOOL(false) => BOOL(false)
+            ) => ERROR(Expected '9023470X945622' to match an integer number)
+          ) => BOOL(false),
           %error (
             'Expected header \'REF-ID\' but was missing'
           )
@@ -976,11 +1234,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -993,11 +1262,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-ID'] => ['1111', '2222']
           ) => BOOL(true),
-          %match:integer (
-            '1234' => '1234',
-            $.headers['REF-ID'] => ['1111', '2222'],
-            json:{} => json:{},
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => ['1111', '2222']
+            ) => BOOL(true),
+            %header:match-repeated (
+              'REF-ID' => 'REF-ID',
+              ['1234'] => ['1234'],
+              $.headers['REF-ID'] => ['1111', '2222'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}} => json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}}
+            ) => BOOL(true),
+            %match:integer (
+              '1234',
+              $.headers['REF-ID'],
+              json:{},
+              BOOL(false)
+            )
           ) => BOOL(true),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -1041,11 +1321,22 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -1058,12 +1349,23 @@ fn match_headers_with_number_type_matching_rule() {
           %check:exists (
             $.headers['REF-ID'] => ['1111', 'two']
           ) => BOOL(true),
-          %match:integer (
-            '1234' => '1234',
-            $.headers['REF-ID'] => ['1111', 'two'],
-            json:{} => json:{},
-            BOOL(false) => BOOL(false)
-          ) => ERROR(Expected 'two' to match an integer number),
+          %if (
+            %header:repeated (
+              $.headers['REF-ID'] => ['1111', 'two']
+            ) => BOOL(true),
+            %header:match-repeated (
+              'REF-ID' => 'REF-ID',
+              ['1234'] => ['1234'],
+              $.headers['REF-ID'] => ['1111', 'two'],
+              json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}} => json:{"ref-id":{"combine":"AND","matchers":[{"match":"integer"}]}}
+            ) => ERROR(Mismatch with header 'REF-ID': Expected '1111, two' to match an integer number, Mismatch with header 'REF-ID': Expected 'two' to match an integer number for value at index 1),
+            %match:integer (
+              '1234',
+              $.headers['REF-ID'],
+              json:{},
+              BOOL(false)
+            )
+          ) => BOOL(false),
           %error (
             'Expected header \'REF-ID\' but was missing'
           )
@@ -1124,11 +1426,22 @@ fn match_headers_with_min_type_matching_rules() {
           %check:exists (
             $.headers['REF-CODE']
           ),
-          %match:equality (
-            'test',
-            $.headers['REF-CODE'],
-            NULL,
-            BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE']
+            ),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test',
+              $.headers['REF-CODE'],
+              NULL,
+              BOOL(false)
+            )
           ),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -1141,11 +1454,11 @@ fn match_headers_with_min_type_matching_rules() {
           %check:exists (
             $.headers['REF-ID']
           ),
-          %match:min-type (
+          %header:match-repeated (
+            'REF-ID',
             ['1234', '4567'],
             $.headers['REF-ID'],
-            json:{"min":2},
-            BOOL(false)
+            json:{"ref-id":{"combine":"AND","matchers":[{"match":"type","min":2}]}}
           ),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -1189,11 +1502,22 @@ fn match_headers_with_min_type_matching_rules() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -1206,11 +1530,11 @@ fn match_headers_with_min_type_matching_rules() {
           %check:exists (
             $.headers['REF-ID'] => ['1', '1', '1']
           ) => BOOL(true),
-          %match:min-type (
+          %header:match-repeated (
+            'REF-ID' => 'REF-ID',
             ['1234', '4567'] => ['1234', '4567'],
             $.headers['REF-ID'] => ['1', '1', '1'],
-            json:{"min":2} => json:{"min":2},
-            BOOL(false) => BOOL(false)
+            json:{"ref-id":{"combine":"AND","matchers":[{"match":"type","min":2}]}} => json:{"ref-id":{"combine":"AND","matchers":[{"match":"type","min":2}]}}
           ) => BOOL(true),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -1254,11 +1578,22 @@ fn match_headers_with_min_type_matching_rules() {
           %check:exists (
             $.headers['REF-CODE'] => 'test'
           ) => BOOL(true),
-          %match:equality (
-            'test' => 'test',
-            $.headers['REF-CODE'] => 'test',
-            NULL => NULL,
-            BOOL(false) => BOOL(false)
+          %if (
+            %header:repeated (
+              $.headers['REF-CODE'] => 'test'
+            ) => BOOL(false),
+            %header:match-repeated (
+              'REF-CODE',
+              ['test'],
+              $.headers['REF-CODE'],
+              json:{}
+            ),
+            %match:equality (
+              'test' => 'test',
+              $.headers['REF-CODE'] => 'test',
+              NULL => NULL,
+              BOOL(false) => BOOL(false)
+            ) => BOOL(true)
           ) => BOOL(true),
           %error (
             'Expected header \'REF-CODE\' but was missing'
@@ -1271,11 +1606,11 @@ fn match_headers_with_min_type_matching_rules() {
           %check:exists (
             $.headers['REF-ID'] => '1'
           ) => BOOL(true),
-          %match:min-type (
+          %header:match-repeated (
+            'REF-ID' => 'REF-ID',
             ['1234', '4567'] => ['1234', '4567'],
             $.headers['REF-ID'] => '1',
-            json:{"min":2} => json:{"min":2},
-            BOOL(false) => BOOL(false)
+            json:{"ref-id":{"combine":"AND","matchers":[{"match":"type","min":2}]}} => json:{"ref-id":{"combine":"AND","matchers":[{"match":"type","min":2}]}}
           ) => ERROR(Expected [1] \(size 1\) to have minimum size of 2),
           %error (
             'Expected header \'REF-ID\' but was missing'
@@ -1708,4 +2043,36 @@ fn match_content_type_header() {
   ) => BOOL(false)
 )
 "#, executed_plan.pretty_form());
+}
+
+#[test]
+fn repeated_header_cases_v2() {
+  let mut failures = vec![];
+  for case in cases::all() {
+    let mut expected = HttpRequest {
+      headers: Some(hashmap! {
+        case.header.to_string() => case.expected.iter().map(|v| v.to_string()).collect()
+      }),
+      ..HttpRequest::default()
+    };
+    expected.matching_rules.add_category("header").add_rules((case.rules)());
+    let actual = HttpRequest {
+      headers: Some(hashmap! {
+        case.header.to_lowercase() => case.actual.iter().map(|v| v.to_string()).collect()
+      }),
+      ..HttpRequest::default()
+    };
+    let context = PlanMatchingContext {
+      interaction: Box::new(SynchronousHttp { request: expected.clone(), ..SynchronousHttp::default() }),
+      ..PlanMatchingContext::default()
+    };
+
+    let plan = build_request_plan(&expected, &context).unwrap();
+    let executed = execute_request_plan(&plan, &actual, &context).unwrap();
+    let matched = executed.plan_root.result == Some(NodeResult::VALUE(NodeValue::BOOL(true)));
+    if matched != case.matches {
+      failures.push(format!("{}: matches != {}\n{}", case.name, case.matches, executed.pretty_form()));
+    }
+  }
+  assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
