@@ -37,7 +37,7 @@ cargo test --no-fail-fast
 | `matching`   | V3 `http_matching` and `matching_rules`, V4 `matching_rules`                      |
 | `generators` | V3 `generators` and `http_generators`, V4 `generators`                            |
 | `message`    | V3 `message_consumer`, V4 `message_consumer`, `synchronous_message_consumer`, `v4` |
-| `plugins`    | V4 `plugins/plugin_lifecycle` and `plugin_http` (needs the matt, csv and avro plugins installed) |
+| `plugins`    | V4 `plugins/*`: lifecycle, HTTP, message, synchronous message and transports (needs the matt, csv, avro and protobuf plugins installed) |
 
 Scenarios tagged `wip` are skipped. `tests/matching.rs` also skips one known failure: the mock server reads a
 0-byte body as no body, so the V4 "not empty matcher with binary data (negative case)" scenario can't get its
