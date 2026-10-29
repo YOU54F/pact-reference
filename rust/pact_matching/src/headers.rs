@@ -7,12 +7,12 @@ use itertools::Itertools;
 use maplit::hashmap;
 use pact_models::headers::PARAMETERISED_HEADERS;
 use pact_models::matchingrules::MatchingRule;
-use pact_models::path_exp::DocPath;
+use pact_models::path_exp::{DocPath, PathToken};
 use tracing::{instrument, debug, warn};
 use crate::{CommonMismatch, MatchingContext, Mismatch};
 use crate::field_rules::FieldMatchScope;
 use crate::matchingrules::{compare_lists_with_matchingrules, DoMatch, match_values};
-use crate::repeated_headers::{header_kind, is_repeated, match_repeated_header, HeaderKind};
+use crate::repeated_headers::{header_kind, is_repeated, match_repeated_header, normalise_list, HeaderKind};
 
 pub(crate) fn strip_whitespace<'a, T: FromIterator<&'a str>>(val: &'a str, split_by: &'a str) -> T {
   val.split(split_by).map(|v| v.trim()).filter(|v| !v.is_empty()).collect()
@@ -104,13 +104,10 @@ pub(crate) fn match_header_value(
   } else if PARAMETERISED_HEADERS.contains(&key.to_lowercase().as_str()) {
     match_parameter_header(expected, actual, key, "header", index, single_value)
   } else {
-    // Normalize whitespace around commas for comparison, since RFC 7230 allows optional whitespace
-    // after commas in header values. This ensures "a,b" matches "a, b".
-    let normalize_comma_whitespace = |s: &str| -> String {
-      s.split(',').map(|v| v.trim()).collect::<Vec<_>>().join(",")
-    };
-    let normalized_expected = normalize_comma_whitespace(expected);
-    let normalized_actual = normalize_comma_whitespace(actual);
+    // RFC 9110 §5.6.1 allows optional whitespace around list commas, so "a,b" matches "a, b". Only commas
+    // that separate list elements in the header's grammar count, not ones inside a Link <URI> or a quoted string.
+    let normalized_expected = normalise_list(key, expected);
+    let normalized_actual = normalise_list(key, actual);
     MatchingRule::Equality.match_value(normalized_expected.as_str(), normalized_actual.as_str(), false, false)
       .map_err(|err| {
         if single_value {
@@ -160,8 +157,9 @@ pub(crate) fn match_header_lines(
     let path = DocPath::root().join(key.to_lowercase());
     if context.matcher_is_defined(&path) {
       debug!("match_header_lines: Matcher is defined for path {}", path);
-      let values_result = compare_lists_with_matchingrules(&path, &context.select_best_matcher(&path), expected, actual, context.clone_with(context.matchers()).as_ref(), &mut |_, expected, actual, context| {
-        match_header_value(key, 0, expected, actual, context, false)
+      let values_result = compare_lists_with_matchingrules(&path, &context.select_best_matcher(&path), expected, actual, context.clone_with(context.matchers()).as_ref(), &mut |path, expected, actual, context| {
+        let index = match path.last() { Some(PathToken::Index(index)) => index, _ => 0 };
+        match_header_value(key, index, expected, actual, context, false)
       });
       mismatches.extend(values_result.err().unwrap_or_default());
     } else {
@@ -892,6 +890,18 @@ mod tests {
         expected: "like, regex, values, arrayContaining".to_string(),
         actual: "regex, like, values, arrayContaining".to_string(),
         mismatch: "Mismatch with header 'X-IMPROVED': Expected 'regex, like, values, arrayContaining' to be equal to 'like, regex, values, arrayContaining'".to_string(),
+      },
+      Mismatch::HeaderMismatch {
+        key: "X-IMPROVED".to_string(),
+        expected: "like".to_string(),
+        actual: "regex".to_string(),
+        mismatch: "Mismatch with header 'X-IMPROVED': Expected 'regex' to be equal to 'like' for value at index 0".to_string(),
+      },
+      Mismatch::HeaderMismatch {
+        key: "X-IMPROVED".to_string(),
+        expected: "regex".to_string(),
+        actual: "like".to_string(),
+        mismatch: "Mismatch with header 'X-IMPROVED': Expected 'like' to be equal to 'regex' for value at index 1".to_string(),
       }
     ]));
 

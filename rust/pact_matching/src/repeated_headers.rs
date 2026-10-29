@@ -115,9 +115,9 @@ fn list_elements(value: &str, grammar: Grammar) -> Vec<&str> {
 }
 
 /// Normalises a list value for comparison: whitespace around commas outside quoted strings
-/// is dropped, as are empty elements.
-pub(crate) fn normalise_list(value: &str) -> String {
-  list_elements(value, Grammar::Plain).join(",")
+/// and the header's delimiters is dropped, as are empty elements.
+pub(crate) fn normalise_list(name: &str, value: &str) -> String {
+  list_elements(value, Grammar::for_header(name)).join(",")
 }
 
 /// Splits a header's field lines into its list elements.
@@ -217,7 +217,8 @@ pub(crate) fn match_repeated_header(
     if primary.is_empty() {
       return RepeatedHeaderResult::default();
     }
-    if match_header_lines(key, expected, actual, context).is_empty() {
+    let per_line = match_header_lines(key, expected, actual, context);
+    if per_line.is_empty() {
       let warning = if bare.is_empty() {
         per_line_warning(key, &joined_actual)
       } else {
@@ -229,12 +230,13 @@ pub(crate) fn match_repeated_header(
       };
       return RepeatedHeaderResult { mismatches: vec![], warning: Some(warning) };
     }
-    return RepeatedHeaderResult { mismatches: primary, warning: None };
+    // The joined mismatch alone doesn't say which value failed, so report the per-line ones as well.
+    return RepeatedHeaderResult { mismatches: primary.into_iter().chain(per_line).collect(), warning: None };
   }
 
   let joined_expected = join_field_lines(expected);
   let joined_actual = join_field_lines(actual);
-  if normalise_list(&joined_expected) == normalise_list(&joined_actual) {
+  if normalise_list(key, &joined_expected) == normalise_list(key, &joined_actual) {
     RepeatedHeaderResult::default()
   } else if match_header_lines(key, expected, actual, context).is_empty() {
     RepeatedHeaderResult {
@@ -280,14 +282,15 @@ mod tests {
 
   #[test]
   fn per_line_fallback_warns_of_deprecation() {
-    let expected = vec!["\"x , y\"".to_string(), "z".to_string()];
-    let actual = vec!["\"x, y\"".to_string(), "z".to_string()];
+    // An unbalanced quote runs to the end of the joined value, but not past the end of its own line.
+    let expected = vec!["\"a".to_string(), "b".to_string()];
+    let actual = vec!["\"a ".to_string(), "b".to_string()];
     let result = match_repeated_header("X-Request", &expected, &actual, &CoreMatchingContext::default());
     assert!(result.mismatches.is_empty(), "{:?}", result.mismatches);
     assert_eq!(result.warning.as_deref(), Some("Header 'X-Request' only matched when its field lines were \
       compared one at a time. Per-line matching of repeated headers is deprecated: RFC 9110 §5.3 treats \
       repeated field lines as one line with the values joined by commas, and a future release will compare \
-      only the joined value '\"x, y\", z'."));
+      only the joined value '\"a , b'."));
     assert!(result.warning.unwrap().contains("deprecated"));
   }
 
@@ -304,6 +307,20 @@ mod tests {
     assert!(warning.contains("RFC 9110 §5.3"), "{warning}");
     assert!(warning.contains("eachValue"), "{warning}");
     assert!(warning.contains("first-"), "{warning}");
+  }
+
+  #[test]
+  fn scalar_rule_mismatch_names_the_failing_value() {
+    // compatibility-suite V2 http_consumer "Supports matchers for repeated request headers (negative case)"
+    let mut category = MatchingRuleCategory::empty("header");
+    category.add_rule(DocPath::new_unwrap("$.x-test"), MatchingRule::Regex(r"\d{1,4}".to_string()), RuleLogic::And);
+    let context = CoreMatchingContext { matchers: category, ..CoreMatchingContext::default() };
+    let expected = vec!["1000".to_string()];
+    let actual = vec!["1000".to_string(), "1234".to_string(), "9999ABC".to_string()];
+    let result = match_repeated_header("X-Test", &expected, &actual, &context);
+    assert!(result.warning.is_none());
+    assert!(result.mismatches.iter().any(|m| m.description.contains(r"Expected '9999ABC' to match '\d{1,4}'")),
+      "{:?}", result.mismatches);
   }
 
   #[test]
@@ -440,7 +457,7 @@ mod tests {
   #[case(r#""x\", y", z"#, r#""x\", y",z"#)]
   #[case("", "")]
   fn normalise_list_ignores_whitespace_and_empty_elements_outside_quotes(#[case] value: &str, #[case] normalised: &str) {
-    assert_eq!(normalise_list(value), normalised);
+    assert_eq!(normalise_list("X-Request", value), normalised);
   }
 }
 
@@ -555,8 +572,21 @@ pub(crate) mod cases {
       plain("extra member", "X-Request", &["request1", "request2"], &["request1, request2, extra"], false, false),
       plain("missing member", "X-Request", &["request1", "request2"], &["request1"], false, false),
       plain("quoted whole", "X-Request", &["request1", "request2"], &["\"request1, request2\""], false, false),
-      plain("quoted OWS fallback", "X-Request", &["\"x , y\"", "z"], &["\"x, y\"", "z"], true, true),
-      plain("singleton untouched", "Set-Cookie", &["one", "two"], &["one, two"], false, false)
+      plain("quoted OWS", "X-Request", &["\"x , y\"", "z"], &["\"x, y\"", "z"], false, false),
+      plain("unbalanced quote fallback", "X-Request", &["\"a", "b"], &["\"a ", "b"], true, true),
+      plain("singleton untouched", "Set-Cookie", &["one", "two"], &["one, two"], false, false),
+      plain("singleton separate lines", "Set-Cookie", &["a=1; Path=/", "b=2; Expires=Sat, 01 Mar 2025 00:00:00 GMT"],
+        &["a=1; Path=/", "b=2; Expires=Sat, 01 Mar 2025 00:00:00 GMT"], true, false),
+      plain("link whitespace inside target", "Link",
+        &[r#"<https://a.example/x,y>; rel="a""#, r#"<https://b.example/>; rel="b""#],
+        &[r#"<https://a.example/x, y>; rel="a", <https://b.example/>; rel="b""#], false, false),
+      plain("via comment whitespace", "Via", &["1.0 fred (a,b)", "1.1 p"], &["1.0 fred (a, b), 1.1 p"], false, false),
+      plain("single multi-value OWS", "Cache-Control", &["no-cache,no-store"], &["no-cache, no-store"], true, false),
+      plain("single multi-value quoted whitespace", "Cache-Control", &["private=\"x,y\""], &["private=\"x, y\""], false, false),
+      plain("single link whitespace inside target", "Link",
+        &[r#"<https://a.example/?x=1,2>; rel="a""#], &[r#"<https://a.example/?x=1, 2>; rel="a""#], false, false),
+      plain("single quoted whitespace", "X-Request", &["\"x,y\""], &["\"x, y\""], false, false),
+      plain("single via comment whitespace", "Via", &["1.0 fred (a,b)"], &["1.0 fred (a, b)"], false, false)
     ]
   }
 }
