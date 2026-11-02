@@ -212,4 +212,31 @@ mod tests {
       expect!(result).to(be_err());
     }
   }
+
+  #[rstest]
+  #[case(["y", "42"], true)]
+  #[case(["y", "z"], false)]
+  #[case(["1", "42"], false)]
+  fn an_indexed_rule_overrides_the_rule_for_the_name_for_that_value(#[case] actual: [&str; 2], #[case] matched: bool) {
+    let rules = pact_models::matchingrules::matchers_from_json(&serde_json::json!({
+      "matchingRules": { "query": {
+        "a": { "matchers": [{ "match": "regex", "regex": "^[a-z]+$" }] },
+        "$.a[1]": { "matchers": [{ "match": "regex", "regex": "^[0-9]+$" }] }
+      } }
+    }), &None).unwrap();
+    let context = CoreMatchingContext::new(
+      DiffConfig::AllowUnexpectedKeys,
+      &rules.rules_for_category("query").unwrap_or_default(),
+      &hashmap!{}
+    );
+    let expected = ["x".to_string(), "100".to_string()];
+    let actual = actual.map(|v| v.to_string());
+
+    let result = super::match_query_values("a", &expected, &actual, &context);
+    if matched {
+      expect!(result).to(be_ok());
+    } else {
+      expect!(result).to(be_err());
+    }
+  }
 }

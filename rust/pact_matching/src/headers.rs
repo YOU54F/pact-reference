@@ -86,14 +86,9 @@ pub(crate) fn match_header_value(
   let expected = expected.trim();
   let actual = actual.trim();
 
-  let matcher_result = if context.matcher_is_defined(&path) {
-    let result = match_values(&path, &context.select_best_matcher(&path), expected, actual);
-    if single_value {
-      result
-    } else {
-      result.map_err(|err| err.iter().map(|e| format!("{} for value at index {}", e, index)).collect())
-    }
-  } else if context.matcher_is_defined(&indexed_path) {
+  // A rule for the name also matches the indexed path, and the most specific rule is selected, so
+  // a rule for this value index overrides the rule for the name
+  let matcher_result = if context.matcher_is_defined(&indexed_path) {
     let result = match_values(&indexed_path, &context.select_best_matcher(&indexed_path), expected, actual);
     if single_value {
       result
@@ -166,8 +161,9 @@ fn match_header_maps(
           let path = DocPath::root().join(key.to_lowercase());
           if context.matcher_is_defined(&path) {
             debug!("match_header_maps: Matcher is defined for path {}", path);
-            let values_result = compare_lists_with_matchingrules(&path, &context.select_best_matcher(&path), value, &actual_values, context.clone_with(context.matchers()).as_ref(), &mut |_, expected, actual, context| {
-              match_header_value(key, 0, expected, actual, context, false)
+            let values_result = compare_lists_with_matchingrules(&path, &context.select_best_matcher(&path), value, &actual_values, context.clone_with(context.matchers()).as_ref(), &mut |p, expected, actual, context| {
+              let index = p.to_vec().last().and_then(|i| i.parse().ok()).unwrap_or(0);
+              match_header_value(key, index, expected, actual, context, false)
             });
             mismatches.extend(values_result.err().unwrap_or_default());
           } else {
@@ -853,5 +849,28 @@ mod tests {
         mismatch: "Mismatch with header 'X-Id': Expected 'test' to match '\\d+' for value at index 0".to_string(),
       }
     ]));
+  }
+
+  #[rstest::rstest]
+  #[case(["b", "42"], true)]
+  #[case(["b", "z"], false)]
+  #[case(["1", "42"], false)]
+  fn an_indexed_rule_overrides_the_rule_for_the_header_for_that_value(#[case] actual: [&str; 2], #[case] matched: bool) {
+    let rules = pact_models::matchingrules::matchers_from_json(&serde_json::json!({
+      "matchingRules": { "header": {
+        "X-Request": { "matchers": [{ "match": "regex", "regex": "^[a-z]+$" }] },
+        "$['X-Request'][1]": { "matchers": [{ "match": "regex", "regex": "^[0-9]+$" }] }
+      } }
+    }), &None).unwrap();
+    let context = HeaderMatchingContext::new(&CoreMatchingContext::new(
+      DiffConfig::AllowUnexpectedKeys,
+      &rules.rules_for_category("header").unwrap_or_default(),
+      &hashmap!{}
+    ));
+    let expected = hashmap! { "X-Request".to_string() => vec!["a".to_string(), "100".to_string()] };
+    let actual = hashmap! { "X-Request".to_string() => actual.iter().map(|v| v.to_string()).collect() };
+    let result = match_headers(Some(expected), Some(actual), &context);
+    let mismatches: Vec<_> = result.values().flatten().collect();
+    expect!(mismatches.is_empty()).to(be_equal_to(matched));
   }
 }

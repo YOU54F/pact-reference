@@ -1191,8 +1191,19 @@ impl MatchingRuleCategory {
   pub fn select_best_matcher(&self, path: &[&str]) -> RuleList {
     match self.name {
       Category::BODY | Category::METADATA => self.max_by_path(path),
+      Category::HEADER | Category::QUERY => self.most_specific_for_path(path),
       _ => self.resolve_matchers_for_path(path).as_rule_list()
     }
+  }
+
+  /// Selects the rules with the longest key that matches the path, so a rule for a value index
+  /// (`$.a[1]`) is used for that value over the rule for the name (`a`).
+  fn most_specific_for_path(&self, path: &[&str]) -> RuleList {
+    self.rules.iter()
+      .filter(|(k, _)| k.matches_path(path))
+      .max_by_key(|(k, _)| k.len())
+      .map(|(_, v)| v.clone())
+      .unwrap_or_default()
   }
 
   /// Returns this category as a matching rule list. Returns a None if there are no rules
@@ -2516,6 +2527,21 @@ mod tests {
         "match": "time",
         "format": "HH"
       })));
+  }
+
+  #[test]
+  fn select_best_matcher_selects_the_rule_for_a_value_index_over_the_rule_for_the_name() {
+    let rules = matchers_from_json(&json!({
+      "matchingRules": { "query": {
+        "a": { "matchers": [{ "match": "type" }] },
+        "$.a[1]": { "matchers": [{ "match": "regex", "regex": "\\d+" }] }
+      } }
+    }), &None).unwrap();
+    let category = rules.rules_for_category("query").unwrap();
+    expect!(category.select_best_matcher(&["$", "a", "1"]).rules).to(
+      be_equal_to(vec![MatchingRule::Regex("\\d+".to_string())]));
+    expect!(category.select_best_matcher(&["$", "a", "0"]).rules).to(
+      be_equal_to(vec![MatchingRule::Type]));
   }
 
   #[test]
