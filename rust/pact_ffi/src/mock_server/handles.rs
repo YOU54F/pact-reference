@@ -1797,11 +1797,33 @@ fn process_body(
                 }
             }
         }
+        Some(ct) if ct.is_text() && is_matcher_definition(body) => {
+            // A text body given as a single matcher definition (e.g. `string('07/14/2023')`
+            // from pact-js). The example value becomes the body, and the matcher is applied
+            // to the whole body.
+            trace!("Processing matcher definition for text body");
+            let category = matching_rules.add_category("body");
+            let processed = process_json(body.to_string(), category, generators);
+            let example = match serde_json::from_str::<Value>(&processed) {
+                Ok(Value::String(s)) => s,
+                _ => processed
+            };
+            OptionalBody::Present(Bytes::from(example), Some(ct), None)
+        }
         _ => {
             // We either have no content type, or an unsupported content type.
             trace!("Raw body");
             OptionalBody::Present(Bytes::from(body.to_owned()), content_type, None)
         }
+    }
+}
+
+/// If the body is a JSON object describing a single matcher or generator, as the
+/// integration JSON format allows for any value.
+fn is_matcher_definition(body: &str) -> bool {
+    match serde_json::from_str::<Value>(body) {
+        Ok(Value::Object(map)) => map.contains_key("pact:matcher:type") || map.contains_key("pact:generator:type"),
+        _ => false
     }
 }
 
@@ -3437,7 +3459,7 @@ mod tests {
   use maplit::hashmap;
   use pact_models::content_types::{JSON, XML};
   use pact_models::{generators, matchingrules, HttpStatus};
-  use pact_models::matchingrules::{Category, MatchingRule};
+  use pact_models::matchingrules::{Category, MatchingRule, RuleList};
   use pact_models::path_exp::DocPath;
   use pact_models::prelude::{Generators, MatchingRules};
   use pretty_assertions::assert_eq;
@@ -4259,6 +4281,58 @@ mod tests {
     let body3 = interaction3.request.contents.value().unwrap();
     expect!(body3.len()).to(be_equal_to(json.len()));
     expect!(interaction3.request.metadata.get("contentType").unwrap().to_string()).to(be_equal_to("\"application/vnd.schemaregistry.v1+json\""));
+  }
+
+  // pact-js#1107
+  #[test]
+  fn pactffi_with_body_text_matcher_definition_uses_the_example_as_the_body() {
+    let pact_handle = PactHandle::new("TextBodyC", "TextBodyP");
+    let description = CString::new("text body with a matcher").unwrap();
+    let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let text_ct = CString::new("text/plain").unwrap();
+    let body = CString::new(r#"{"pact:matcher:type":"type","value":"07/14/2023"}"#).unwrap();
+    let result = pactffi_with_body(i_handle, InteractionPart::Response, text_ct.as_ptr(), body.as_ptr());
+    let number_body = CString::new(r#"{"pact:matcher:type":"integer","value":100}"#).unwrap();
+    let result2 = pactffi_with_body(i_handle, InteractionPart::Request, text_ct.as_ptr(), number_body.as_ptr());
+
+    let interaction = i_handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(result).to(be_true());
+    expect!(result2).to(be_true());
+    expect!(interaction.response.body.value_as_string()).to(be_some().value("07/14/2023".to_string()));
+    expect!(interaction.response.body.content_type()).to(be_some().value(ContentType::parse("text/plain").unwrap()));
+    expect!(interaction.response.matching_rules.rules_for_category("body").unwrap().rules.get(&DocPath::root()).cloned())
+      .to(be_some().value(RuleList::new(MatchingRule::Type)));
+    expect!(interaction.request.body.value_as_string()).to(be_some().value("100".to_string()));
+    expect!(interaction.request.matching_rules.rules_for_category("body").unwrap().rules.get(&DocPath::root()).cloned())
+      .to(be_some().value(RuleList::new(MatchingRule::Integer)));
+  }
+
+  #[test]
+  fn pactffi_with_body_text_json_without_matcher_is_kept_as_is() {
+    let pact_handle = PactHandle::new("TextBodyC", "TextBodyP");
+    let description = CString::new("text body that looks like JSON").unwrap();
+    let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let text_ct = CString::new("text/plain").unwrap();
+    let json = r#"{"value":"07/14/2023"}"#;
+    let body = CString::new(json).unwrap();
+    let result = pactffi_with_body(i_handle, InteractionPart::Response, text_ct.as_ptr(), body.as_ptr());
+
+    let interaction = i_handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(result).to(be_true());
+    expect!(interaction.response.body.value_as_string()).to(be_some().value(json.to_string()));
+    expect!(interaction.response.matching_rules.rules_for_category("body")).to(be_none());
   }
 
   #[test]
