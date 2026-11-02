@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use cucumber::gherkin::Step;
 use cucumber::{given, then, when};
 use maplit::hashmap;
+use pact_models::bodies::OptionalBody;
 use pact_models::interaction::Interaction;
 use pact_models::matchingrules::matchers_from_json;
 use pact_models::pact::Pact;
@@ -155,6 +156,27 @@ fn a_request_is_received_with_the_following(world: &mut V4World, step: &Step) {
     }
   }
   world.received_requests.push(request);
+}
+
+#[given(expr = "the {string} header is removed from the expected request")]
+fn the_header_is_removed_from_the_expected_request(world: &mut V4World, name: String) {
+  remove_header(&mut world.expected_request, &name);
+}
+
+#[given(expr = "the {string} header is removed from the received request")]
+fn the_header_is_removed_from_the_received_request(world: &mut V4World, name: String) {
+  let request = world.received_requests.last_mut().unwrap();
+  remove_header(request, &name);
+  // A real request without a Content-Type header has a body with no known content type
+  if let OptionalBody::Present(body, _, _) = &request.body {
+    request.body = OptionalBody::Present(body.clone(), None, None);
+  }
+}
+
+fn remove_header(request: &mut HttpRequest, name: &str) {
+  if let Some(headers) = request.headers.as_mut() {
+    headers.retain(|key, _| !key.eq_ignore_ascii_case(name));
+  }
 }
 
 #[when("the request is compared to the expected one")]
