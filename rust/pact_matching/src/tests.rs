@@ -503,6 +503,33 @@ async fn body_does_not_match_if_different_content_types() {
 }
 
 #[tokio::test]
+async fn body_uses_expected_content_type_if_actual_has_none() {
+  let octet_stream = ContentType::parse("application/octet-stream").unwrap();
+  let expected = Request {
+    method: "POST".to_string(),
+    body: OptionalBody::Present(Bytes::from_static(b"\x00\x01\x02"), Some(octet_stream), None),
+    ..Request::default()
+  };
+  let actual = Request {
+    method: "POST".to_string(),
+    body: OptionalBody::Present(Bytes::from_static(b"\x00\x01\x02"), Some(TEXT.clone()), None),
+    ..Request::default()
+  };
+  let result = match_body(&expected, &actual, &CoreMatchingContext::default(),
+                          &CoreMatchingContext::default()).await;
+  expect!(result.mismatches().iter()).to(be_empty());
+
+  let different = Request {
+    body: OptionalBody::Present(Bytes::from_static(b"\x00\x01\x09"), None, None),
+    ..actual.clone()
+  };
+  let result = match_body(&expected, &different, &CoreMatchingContext::default(),
+                          &CoreMatchingContext::default()).await;
+  expect!(result.mismatches().iter()).to_not(be_empty());
+  expect!(matches!(result.mismatches()[0], Mismatch::BodyTypeMismatch { .. })).to(be_false());
+}
+
+#[tokio::test]
 async fn body_matching_uses_any_matcher_for_content_type_header() {
   let expected = Request {
     method: "GET".to_string(),
