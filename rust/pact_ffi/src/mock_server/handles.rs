@@ -1060,7 +1060,15 @@ fn from_integration_json_v2(
                 matching_rules.add_rule(path.clone(), rule.clone(), RuleLogic::And);
               }
             } else {
+              // A type matcher on a path injected from the provider state (e.g. pact-js
+              // `fromProviderState`) would match any path, so only the generator is kept
+              let provider_state_path = matching_rules.name == Category::PATH &&
+                map.get("pact:generator:type").map(|gen| json_to_string(gen) == "ProviderState").unwrap_or(false);
               for rule in rules {
+                if provider_state_path && *rule == MatchingRule::Type {
+                  debug!("ignoring type matcher on a path with a provider state generator");
+                  continue;
+                }
                 matching_rules.add_rule(path.clone(), rule.clone(), RuleLogic::And);
               }
             }
@@ -4173,6 +4181,57 @@ mod tests {
     let json = interaction.to_json();
     assert_eq!(json["request"]["generators"], json!({
       "path": {"expression": "/users/${id}", "type": "ProviderState"}
+    }));
+  }
+
+  // pact-js#1088
+  #[test_log::test]
+  fn path_with_provider_state_generator_and_type_matcher_only_keeps_the_generator() {
+    let pact_handle = PactHandle::new("TestPC2", "TestPP");
+    let description = CString::new("path_with_provider_state_generator_and_type_matcher").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let method = CString::new("GET").unwrap();
+    let path = CString::new(r#"{"pact:matcher:type":"type","expression":"/users/${id}","pact:generator:type":"ProviderState","value":"/users/1"}"#).unwrap();
+    pactffi_with_request(handle, method.as_ptr(), path.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(interaction.request.path.as_str()).to(be_equal_to("/users/1"));
+    expect!(interaction.request.matching_rules.rules_for_category("path").map(|c| c.rules.is_empty()).unwrap_or(true)).to(be_true());
+    let json = interaction.to_json();
+    assert_eq!(json["request"]["generators"], json!({
+      "path": {"expression": "/users/${id}", "type": "ProviderState"}
+    }));
+  }
+
+  #[test_log::test]
+  fn path_with_provider_state_generator_and_regex_matcher_keeps_the_matcher() {
+    let pact_handle = PactHandle::new("TestPC3", "TestPP");
+    let description = CString::new("path_with_provider_state_generator_and_regex_matcher").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let method = CString::new("GET").unwrap();
+    let path = CString::new(r#"{"pact:matcher:type":"regex","regex":"\\/users\\/\\d+","expression":"/users/${id}","pact:generator:type":"ProviderState","value":"/users/1"}"#).unwrap();
+    pactffi_with_request(handle, method.as_ptr(), path.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(&interaction.request.matching_rules).to(be_equal_to(&matchingrules! {
+      "path" => { "$" => [ MatchingRule::Regex("\\/users\\/\\d+".to_string()) ] }
+    }));
+    expect!(&interaction.request.generators).to(be_equal_to(&generators! {
+      "path" => {
+        "$" => Generator::ProviderStateGenerator("/users/${id}".to_string(), None)
+      }
     }));
   }
 
