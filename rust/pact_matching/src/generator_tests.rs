@@ -115,6 +115,89 @@ async fn applies_provider_state_generator_for_query_parameters_with_square_brack
 }
 
 #[tokio::test]
+async fn header_generator_for_the_name_applies_to_each_value_and_ignores_case() {
+  let request = HttpRequest { headers: Some(hashmap!{
+      s!("X-Request") => vec![s!("a"), s!("b")]
+    }), generators: generators! {
+      "HEADER" => {
+        "x-request" => Generator::ProviderStateGenerator("exp".to_string(), None)
+      }
+    }, .. HttpRequest::default()
+  };
+  let context = hashmap! { "exp" => json!("Z") };
+  let headers = generate_request(&request, &GeneratorTestMode::Provider, &context).await.headers.unwrap();
+  expect!(headers.get("X-Request").unwrap()).to(be_equal_to(&vec![s!("Z"), s!("Z")]));
+}
+
+#[tokio::test]
+async fn header_generator_for_a_value_index_applies_only_to_that_value() {
+  let response = HttpResponse { headers: Some(hashmap!{
+      s!("X-Request") => vec![s!("a"), s!("b"), s!("c")]
+    }), generators: generators! {
+      "HEADER" => {
+        "$['X-Request'][1]" => Generator::ProviderStateGenerator("exp".to_string(), None),
+        "$['x-request'][5]" => Generator::ProviderStateGenerator("exp".to_string(), None)
+      }
+    }, .. HttpResponse::default()
+  };
+  let context = hashmap! { "exp" => json!("Z") };
+  let headers = generate_response(&response, &GeneratorTestMode::Provider, &context).await.headers.unwrap();
+  expect!(headers.get("X-Request").unwrap()).to(be_equal_to(&vec![s!("a"), s!("Z"), s!("c")]));
+}
+
+#[tokio::test]
+async fn header_generator_for_a_value_index_runs_after_the_one_for_the_name() {
+  let request = HttpRequest { headers: Some(hashmap!{
+      s!("X-Request") => vec![s!("a"), s!("b")]
+    }), generators: generators! {
+      "HEADER" => {
+        "$['X-Request'][0]" => Generator::ProviderStateGenerator("first".to_string(), None),
+        "X-Request" => Generator::ProviderStateGenerator("all".to_string(), None)
+      }
+    }, .. HttpRequest::default()
+  };
+  let context = hashmap! { "first" => json!("B"), "all" => json!("A") };
+  let headers = generate_request(&request, &GeneratorTestMode::Provider, &context).await.headers.unwrap();
+  expect!(headers.get("X-Request").unwrap()).to(be_equal_to(&vec![s!("B"), s!("A")]));
+}
+
+#[tokio::test]
+async fn header_generator_for_a_missing_header_generates_a_single_value() {
+  let request = HttpRequest { generators: generators! {
+      "HEADER" => {
+        "X-Id" => Generator::ProviderStateGenerator("exp".to_string(), None),
+        "$['X-Other'][1]" => Generator::ProviderStateGenerator("exp".to_string(), None)
+      }
+    }, .. HttpRequest::default()
+  };
+  let context = hashmap! { "exp" => json!("Z") };
+  let headers = generate_request(&request, &GeneratorTestMode::Provider, &context).await.headers.unwrap();
+  expect!(headers).to(be_equal_to(hashmap!{ s!("X-Id") => vec![s!("Z")] }));
+}
+
+#[tokio::test]
+async fn query_generator_for_a_value_index_applies_only_to_that_value() {
+  // A key without the leading `$` is a plain parameter name, as when it is loaded from a pact file
+  let mut plain_name = DocPath::root();
+  plain_name.push_field("ids[0]");
+  let mut request = HttpRequest { query: Some(hashmap!{
+      "ids".to_string() => vec![ Some("1".to_string()), Some("2".to_string()) ],
+      "ids[0]".to_string() => vec![ Some("x".to_string()) ]
+    }), generators: generators! {
+      "QUERY" => {
+        "$.ids[1]" => Generator::ProviderStateGenerator("exp".to_string(), None)
+      }
+    }, .. HttpRequest::default()
+  };
+  request.generators.add_generator_with_subcategory(&GeneratorCategory::QUERY, plain_name,
+    Generator::ProviderStateGenerator("exp".to_string(), None));
+  let context = hashmap! { "exp" => json!("Z") };
+  let query = generate_request(&request, &GeneratorTestMode::Provider, &context).await.query.unwrap();
+  expect!(query.get("ids").unwrap()).to(be_equal_to(&vec![Some(s!("1")), Some(s!("Z"))]));
+  expect!(query.get("ids[0]").unwrap()).to(be_equal_to(&vec![Some(s!("Z"))]));
+}
+
+#[tokio::test]
 async fn applies_body_generator_to_the_copy_of_the_request() {
   let request = HttpRequest { body: OptionalBody::Present("{\"a\": 100, \"b\": \"B\"}".into(), None, None),
     generators: generators! {
