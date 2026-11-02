@@ -124,7 +124,7 @@ use maplit::*;
 use pact_models::{Consumer, PactSpecification, Provider};
 use pact_models::bodies::OptionalBody;
 use pact_models::content_types::{detect_content_type_from_string, ContentType, TEXT};
-use pact_models::generators::{generators_from_json, Generator, Generators};
+use pact_models::generators::{generators_from_json, Generator, GeneratorCategory, Generators};
 use pact_models::headers::parse_header;
 use pact_models::http_parts::HttpPart;
 use pact_models::interaction::Interaction;
@@ -1637,6 +1637,82 @@ ffi_fn! {
   } {
     false
   }
+}
+
+ffi_fn! {
+  /// Removes a header from the Interaction, along with any matching rules and generators
+  /// configured for it. The header name is matched case-insensitively. Returns false if the
+  /// interaction or Pact can't be modified (i.e. the mock server for it has already started), the
+  /// interaction is not an HTTP interaction, or the header is not set.
+  ///
+  /// This can be used to remove the `Content-Type` header that the body functions
+  /// (`pactffi_with_body`, `pactffi_with_binary_body`, etc.) add by default, when the request or
+  /// response must not have one. The content type of the body is kept with the body, so it is
+  /// still compared using that content type. Before V4, a Pact file can only record the content
+  /// type of a body with the `Content-Type` header, so removing it from a part with a body that is
+  /// not text is not allowed for those specification versions, and this function will return
+  /// false.
+  ///
+  /// * `part` - The part of the interaction to remove the header from (Request or Response).
+  /// * `name` - the header name.
+  ///
+  /// # Safety
+  /// The name parameter must be a valid pointer to a NULL terminated string.
+  fn pactffi_remove_header(
+    interaction: InteractionHandle,
+    part: InteractionPart,
+    name: *const c_char
+  ) -> bool {
+    if let Some(name) = convert_cstr("name", name) {
+      let spec_version = interaction.with_pact(&|_, inner| inner.specification_version)
+        .unwrap_or_default();
+      interaction.with_interaction(&|_, mock_server_started, inner| {
+        if let Some(reqres) = inner.as_v4_http_mut() {
+          let http_part: &mut dyn HttpPart = match part {
+            InteractionPart::Request => &mut reqres.request,
+            InteractionPart::Response => &mut reqres.response
+          };
+          remove_header(http_part, name, spec_version) && !mock_server_started
+        } else {
+          error!("Interaction is not an HTTP interaction, is {}", inner.type_of());
+          false
+        }
+      }).unwrap_or(false)
+    } else {
+      warn!("Ignoring header with empty or null name");
+      false
+    }
+  } {
+    false
+  }
+}
+
+fn remove_header(part: &mut dyn HttpPart, name: &str, spec_version: PactSpecification) -> bool {
+  if spec_version < PactSpecification::V4 && name.eq_ignore_ascii_case("content-type") {
+    let body = part.body();
+    if body.is_present() && !body.content_type().map(|ct| ct.is_text()).unwrap_or(false) {
+      warn!("Not removing the Content-Type header: a {} Pact file can not record the content type \
+        of a body that is not text without it", spec_version);
+      return false;
+    }
+  }
+
+  let removed = match part.headers_mut().keys().find(|k| k.eq_ignore_ascii_case(name)).cloned() {
+    Some(key) => part.headers_mut().remove(&key).is_some(),
+    None => false
+  };
+
+  let matches_name = |path: &DocPath| path.first_field()
+    .map(|field| field.eq_ignore_ascii_case(name))
+    .unwrap_or(false);
+  if let Some(category) = part.matching_rules_mut().rules.get_mut(&Category::HEADER) {
+    category.rules.retain(|path, _| !matches_name(path));
+  }
+  if let Some(generators) = part.generators_mut().categories.get_mut(&GeneratorCategory::HEADER) {
+    generators.retain(|path, _| !matches_name(path));
+  }
+
+  removed
 }
 
 /// Configures the response for the Interaction. Returns false if the interaction or Pact can't be
@@ -3901,6 +3977,63 @@ mod tests {
       "x-id".to_string() => vec!["200".to_string()]
     }));
     expect!(interaction.request.matching_rules.rules.get(&Category::HEADER).cloned().unwrap_or_default().is_empty()).to(be_true());
+  }
+
+  #[test]
+  fn pactffi_remove_header_test() {
+    let pact_handle = PactHandle::new("TestHC1", "TestHP");
+    let description = CString::new("remove_header").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let name = CString::new("x-id").unwrap();
+    let value = CString::new("{\"pact:matcher:type\":\"regex\",\"regex\":\"\\\\d+\",\"value\":\"100\"}").unwrap();
+    pactffi_with_header_v2(handle, InteractionPart::Request, name.as_ptr(), 0, value.as_ptr());
+    let other = CString::new("x-other").unwrap();
+    pactffi_with_header_v2(handle, InteractionPart::Request, other.as_ptr(), 0, value.as_ptr());
+
+    let upper_name = CString::new("X-ID").unwrap();
+    let result = pactffi_remove_header(handle, InteractionPart::Request, upper_name.as_ptr());
+    let result2 = pactffi_remove_header(handle, InteractionPart::Request, upper_name.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(result).to(be_true());
+    expect!(result2).to(be_false());
+    expect!(interaction.request.headers.clone()).to(be_some().value(hashmap!{
+      "x-other".to_string() => vec!["100".to_string()]
+    }));
+    let rules = interaction.request.matching_rules.rules.get(&Category::HEADER).cloned().unwrap_or_default();
+    expect!(rules.rules.keys().map(|k| k.to_string()).collect::<Vec<_>>()).to(be_equal_to(vec!["$['x-other']".to_string()]));
+  }
+
+  #[rstest]
+  #[case(PactSpecification::V4, true)]
+  #[case(PactSpecification::V3, false)]
+  fn pactffi_remove_header_binary_body_content_type(#[case] spec: PactSpecification, #[case] expected_result: bool) {
+    let pact_handle = PactHandle::new("TestHC1", "TestHP");
+    pactffi_with_specification(pact_handle, spec);
+    let description = CString::new("remove_header_binary").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let body = [0x00_u8, 0x01, 0xFF, 0xFE];
+    pactffi_with_binary_body(handle, InteractionPart::Request, std::ptr::null(), body.as_ptr(), body.len());
+
+    let name = CString::new("content-type").unwrap();
+    let result = pactffi_remove_header(handle, InteractionPart::Request, name.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(result).to(be_equal_to(expected_result));
+    expect!(interaction.request.has_header("Content-Type")).to(be_equal_to(!expected_result));
+    expect!(interaction.request.body.content_type().unwrap().to_string()).to(be_equal_to("application/octet-stream"));
   }
 
   #[test]
