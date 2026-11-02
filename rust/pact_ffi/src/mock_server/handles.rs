@@ -1891,10 +1891,10 @@ pub extern "C" fn pactffi_with_body(
                                 "Setting request content type header to '{}' (if not already set)",
                                 ct
                             );
-                            if let Some(headers) = http.request.headers.as_mut() {
-                                headers
-                                    .entry(content_type_header.to_string())
-                                    .or_insert_with(|| vec![ct.to_string()]);
+                            if http.request.has_header(&content_type_header) {
+                                trace!("Content type header already set, not overriding");
+                            } else if let Some(headers) = http.request.headers.as_mut() {
+                                headers.insert(content_type_header.clone(), vec![ct.to_string()]);
                             } else {
                                 http.request.headers = Some(hashmap! {
                                     content_type_header.clone() => vec![ct.to_string()]
@@ -1916,10 +1916,10 @@ pub extern "C" fn pactffi_with_body(
                                 "Setting response content type header to '{}' (if not already set)",
                                 ct
                             );
-                            if let Some(headers) = http.response.headers.as_mut() {
-                                headers
-                                    .entry(content_type_header.to_string())
-                                    .or_insert_with(|| vec![ct.to_string()]);
+                            if http.response.has_header(&content_type_header) {
+                                trace!("Content type header already set, not overriding");
+                            } else if let Some(headers) = http.response.headers.as_mut() {
+                                headers.insert(content_type_header.clone(), vec![ct.to_string()]);
                             } else {
                                 http.response.headers = Some(hashmap! {
                                     content_type_header.clone() => vec![ct.to_string()]
@@ -4842,6 +4842,33 @@ mod tests {
       interaction.request.body.value(),
       None
     )
+  }
+
+  // Issue #302
+  #[test]
+  fn pactffi_with_body_does_not_duplicate_content_type_header_with_different_case() {
+    let pact_handle = PactHandle::new("WithBodyC", "WithBodyP");
+    let description = CString::new("lowercase content-type").unwrap();
+    let i_handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let header_name = CString::new("content-type").unwrap();
+    let header_value = CString::new("application/json; charset=utf-8").unwrap();
+    let json_ct = CString::new("application/json").unwrap();
+    let body = CString::new("{\"test\":true}").unwrap();
+    for part in [InteractionPart::Request, InteractionPart::Response] {
+      pactffi_with_header_v2(i_handle, part, header_name.as_ptr(), 0, header_value.as_ptr());
+      expect!(pactffi_with_body(i_handle, part, json_ct.as_ptr(), body.as_ptr())).to(be_true());
+    }
+
+    let interaction = i_handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+    pactffi_free_pact_handle(pact_handle);
+
+    for headers in [interaction.request.headers.unwrap(), interaction.response.headers.unwrap()] {
+      expect!(headers.len()).to(be_equal_to(1));
+      expect!(headers.get("content-type").cloned()).to(be_some().value(vec!["application/json; charset=utf-8".to_string()]));
+    }
   }
 
   #[test]
