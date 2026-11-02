@@ -9,6 +9,7 @@ use maplit::hashmap;
 use pact_models::generators::{Generators, GeneratorTestMode};
 use pact_models::json_utils::json_to_string;
 use pact_models::path_exp::DocPath;
+use pact_models::query_strings::parse_query_string;
 use pact_models::v4::http_parts::HttpRequest;
 use serde_json::Value;
 
@@ -30,6 +31,13 @@ fn a_request_configured_with_the_following_generators(world: &mut V4World, step:
       if let Some(field) = headers.get(index) {
         match field.as_str() {
           "body" => setup_body(value, &mut request, None),
+          "query" => request.query = parse_query_string(value),
+          "headers" => {
+            // A JSON object of a name to a list of values, so that values can contain commas
+            let headers: HashMap<String, Vec<String>> = serde_json::from_str(value)
+              .expect("headers must be a JSON object of a name to a list of values");
+            request.headers = Some(headers);
+          }
           "generators" => {
             let json: Value = if value.starts_with("JSON:") {
               serde_json::from_str(value.strip_prefix("JSON:").unwrap_or(value).trim()).unwrap()
@@ -152,4 +160,38 @@ fn the_body_value_for_will_have_been_replaced_with_a_value(
   }
 
   assert_value_type(value_type, element)
+}
+
+#[then(expr = "the request query parameter {string} will be {}")]
+fn the_request_query_parameter_will_be(
+  world: &mut V4World,
+  name: String,
+  values: String
+) -> anyhow::Result<()> {
+  let expected: Vec<String> = serde_json::from_str(values.as_str())?;
+  let actual = world.generated_request.query.as_ref()
+    .and_then(|query| query.get(&name))
+    .map(|values| values.iter().map(|v| v.clone().unwrap_or_default()).collect::<Vec<_>>());
+  if actual.as_ref() == Some(&expected) {
+    Ok(())
+  } else {
+    Err(anyhow!("Expected query parameter {} to be {:?} but was {:?}", name, expected, actual))
+  }
+}
+
+#[then(expr = "the request header {string} will be {}")]
+fn the_request_header_will_be(
+  world: &mut V4World,
+  name: String,
+  values: String
+) -> anyhow::Result<()> {
+  let expected: Vec<String> = serde_json::from_str(values.as_str())?;
+  let actual = world.generated_request.headers.as_ref()
+    .and_then(|headers| headers.iter().find(|(k, _)| k.eq_ignore_ascii_case(name.as_str())))
+    .map(|(_, values)| values.clone());
+  if actual.as_ref() == Some(&expected) {
+    Ok(())
+  } else {
+    Err(anyhow!("Expected header {} to be {:?} but was {:?}", name, expected, actual))
+  }
 }

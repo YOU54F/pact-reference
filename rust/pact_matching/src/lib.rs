@@ -374,14 +374,14 @@ use serde_json::{json, Value};
 
 use pact_models::bodies::OptionalBody;
 use pact_models::content_types::ContentType;
-use pact_models::generators::{apply_generators, GenerateValue, GeneratorCategory, GeneratorTestMode, VariantMatcher};
+use pact_models::generators::{apply_generators, GenerateValue, Generator, GeneratorCategory, GeneratorTestMode, VariantMatcher};
 use pact_models::http_parts::HttpPart;
 use pact_models::interaction::Interaction;
 use pact_models::json_utils::json_to_string;
 use pact_models::matchingrules::{Category, MatchingRule, MatchingRuleCategory, RuleList};
 use pact_models::pact::Pact;
 use pact_models::PactSpecification;
-use pact_models::path_exp::DocPath;
+use pact_models::path_exp::{DocPath, PathToken};
 use pact_models::v4::http_parts::{HttpRequest, HttpResponse};
 use pact_models::v4::message_parts::MessageContents;
 use pact_models::v4::sync_message::SynchronousMessage;
@@ -2444,6 +2444,56 @@ pub async fn match_sync_message_response<'a>(
   mismatches
 }
 
+/// Applies a generator to the values of a header or query parameter. A key for the name (`$.name`) applies to every
+/// value, and generates a single value if there are none. A key with a value index (`$.name[1]`) applies only to that
+/// value, and is ignored if there is no value at that index. Generators are applied in order of path length, so the
+/// generators for an index run after the one for the name.
+fn apply_value_generator<V>(
+  values: &mut HashMap<String, Vec<V>>,
+  key: &DocPath,
+  generator: &Generator,
+  context: &HashMap<&str, Value>,
+  ignore_case: bool,
+  to_string: fn(&V) -> String,
+  from_string: fn(String) -> V
+) {
+  let (name, index) = match key.tokens().as_slice() {
+    [PathToken::Root, PathToken::Field(name)] => (name.as_str(), None),
+    [PathToken::Root, PathToken::Field(name), PathToken::Index(index)] => (name.as_str(), Some(*index)),
+    _ => match key.first_field() {
+      Some(name) => (name, None),
+      None => return
+    }
+  };
+  let existing = values.keys()
+    .find(|k| if ignore_case { k.eq_ignore_ascii_case(name) } else { k.as_str() == name })
+    .cloned();
+  let generate = |value: String| generator.generate_value(&value, context, &DefaultVariantMatcher.boxed()).ok();
+  match (existing, index) {
+    (Some(existing), None) => {
+      let current = values.get_mut(&existing).unwrap();
+      for value in current.iter_mut() {
+        if let Some(v) = generate(to_string(value)) {
+          *value = from_string(v);
+        }
+      }
+    }
+    (Some(existing), Some(index)) => {
+      if let Some(value) = values.get_mut(&existing).unwrap().get_mut(index) {
+        if let Some(v) = generate(to_string(value)) {
+          *value = from_string(v);
+        }
+      }
+    }
+    (None, None) => {
+      if let Some(v) = generate(String::default()) {
+        values.insert(name.to_string(), vec![from_string(v)]);
+      }
+    }
+    (None, Some(_)) => {}
+  }
+}
+
 /// Generates the request by applying any defined generators
 // TODO: Need to pass in any plugin data
 #[instrument(level = "trace")]
@@ -2464,54 +2514,25 @@ pub async fn generate_request(request: &HttpRequest, mode: &GeneratorTestMode, c
   let generators = request.build_generators(&GeneratorCategory::HEADER);
   if !generators.is_empty() {
     debug!("Applying header generators...");
+    let headers = request.headers.get_or_insert_with(HashMap::new);
     apply_generators(mode, &generators, &mut |key, generator| {
-      if let Some(header) = key.first_field() {
-        if let Some(ref mut headers) = request.headers {
-          if headers.contains_key(header) {
-            if let Ok(v) = generator.generate_value(&headers.get(header).unwrap().clone(), context, &DefaultVariantMatcher.boxed()) {
-              headers.insert(header.to_string(), v);
-            }
-          } else {
-            if let Ok(v) = generator.generate_value(&"".to_string(), context, &DefaultVariantMatcher.boxed()) {
-              headers.insert(header.to_string(), vec![ v.to_string() ]);
-            }
-          }
-        } else {
-          if let Ok(v) = generator.generate_value(&"".to_string(), context, &DefaultVariantMatcher.boxed()) {
-            request.headers = Some(hashmap!{
-              header.to_string() => vec![ v.to_string() ]
-            })
-          }
-        }
-      }
+      apply_value_generator(headers, key, generator, context, true, |v| v.clone(), |v| v);
     });
+    if headers.is_empty() {
+      request.headers = None;
+    }
   }
 
   let generators = request.build_generators(&GeneratorCategory::QUERY);
   if !generators.is_empty() {
     debug!("Applying query generators...");
+    let query = request.query.get_or_insert_with(HashMap::new);
     apply_generators(mode, &generators, &mut |key, generator| {
-      if let Some(param) = key.first_field() {
-        if let Some(ref mut parameters) = request.query {
-          if let Some(parameter) = parameters.get_mut(param) {
-            let mut generated = parameter.clone();
-            for (index, val) in parameter.iter().enumerate() {
-              let value = val.clone().unwrap_or_default();
-              if let Ok(v) = generator.generate_value(&value, context, &DefaultVariantMatcher.boxed()) {
-                generated[index] = Some(v);
-              }
-            }
-            *parameter = generated;
-          } else if let Ok(v) = generator.generate_value(&"".to_string(), context, &DefaultVariantMatcher.boxed()) {
-            parameters.insert(param.to_string(), vec![ Some(v.to_string()) ]);
-          }
-        } else if let Ok(v) = generator.generate_value(&"".to_string(), context, &DefaultVariantMatcher.boxed()) {
-          request.query = Some(hashmap!{
-            param.to_string() => vec![ Some(v.to_string()) ]
-          })
-        }
-      }
+      apply_value_generator(query, key, generator, context, false, |v| v.clone().unwrap_or_default(), Some);
     });
+    if query.is_empty() {
+      request.query = None;
+    }
   }
 
   let generators = request.build_generators(&GeneratorCategory::BODY);
@@ -2545,27 +2566,13 @@ pub async fn generate_response(response: &HttpResponse, mode: &GeneratorTestMode
   let generators = response.build_generators(&GeneratorCategory::HEADER);
   if !generators.is_empty() {
     debug!("Applying header generators...");
+    let headers = response.headers.get_or_insert_with(HashMap::new);
     apply_generators(mode, &generators, &mut |key, generator| {
-      if let Some(header) = key.first_field() {
-        if let Some(ref mut headers) = response.headers {
-          if headers.contains_key(header) {
-            if let Ok(v) = generator.generate_value(&headers.get(header).unwrap().clone(), context, &DefaultVariantMatcher.boxed()) {
-              headers.insert(header.to_string(), v);
-            }
-          } else {
-            if let Ok(v) = generator.generate_value(&"".to_string(), context, &DefaultVariantMatcher.boxed()) {
-              headers.insert(header.to_string(), vec![ v.to_string() ]);
-            }
-          }
-        } else {
-          if let Ok(v) = generator.generate_value(&"".to_string(), context, &DefaultVariantMatcher.boxed()) {
-            response.headers = Some(hashmap!{
-              header.to_string() => vec![ v.to_string() ]
-            })
-          }
-        }
-      }
+      apply_value_generator(headers, key, generator, context, true, |v| v.clone(), |v| v);
     });
+    if headers.is_empty() {
+      response.headers = None;
+    }
   }
   let generators = response.build_generators(&GeneratorCategory::BODY);
   if !generators.is_empty() && response.body.is_present() {
