@@ -176,6 +176,25 @@ async fn header_generator_for_a_missing_header_generates_a_single_value() {
 }
 
 #[tokio::test]
+async fn query_generator_for_a_missing_parameter_generates_a_single_value() {
+  let request = HttpRequest { query: Some(hashmap!{
+      "a".to_string() => vec![ Some("1".to_string()) ]
+    }), generators: generators! {
+      "QUERY" => {
+        "id" => Generator::ProviderStateGenerator("exp".to_string(), None),
+        "$.other[1]" => Generator::ProviderStateGenerator("exp".to_string(), None)
+      }
+    }, .. HttpRequest::default()
+  };
+  let context = hashmap! { "exp" => json!("Z") };
+  let query = generate_request(&request, &GeneratorTestMode::Provider, &context).await.query.unwrap();
+  expect!(query).to(be_equal_to(hashmap!{
+    s!("a") => vec![Some(s!("1"))],
+    s!("id") => vec![Some(s!("Z"))]
+  }));
+}
+
+#[tokio::test]
 async fn query_generator_for_a_value_index_applies_only_to_that_value() {
   // A key without the leading `$` is a plain parameter name, as when it is loaded from a pact file
   let mut plain_name = DocPath::root();
