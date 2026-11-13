@@ -1778,9 +1778,12 @@ pub async fn match_body(
   let actual_content_type = actual.content_type().unwrap_or_default();
   debug!("expected content type = '{}', actual content type = '{}'", expected_content_type,
          actual_content_type);
+  // Without a Content-Type header the actual type was only sniffed from the body (the mock server
+  // stores that guess on the body), so it can't contradict the expected type (pact-go#263).
+  let actual_declares_type = actual.has_header("Content-Type");
   let content_type_matcher = header_context.select_best_matcher(&DocPath::root().join("content-type"));
   debug!("content type header matcher = '{:?}'", content_type_matcher);
-  if expected_content_type.is_unknown() || actual_content_type.is_unknown() ||
+  if expected_content_type.is_unknown() || actual_content_type.is_unknown() || !actual_declares_type ||
     expected_content_type.is_equivalent_to(&actual_content_type) ||
     expected_content_type.is_equivalent_to(&actual_content_type.base_type()) ||
     (!content_type_matcher.is_empty() &&
