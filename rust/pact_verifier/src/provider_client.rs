@@ -106,7 +106,8 @@ fn create_native_request(
   if let Some(headers) = &request.headers {
     let mut header_map = HeaderMap::new();
     for (k, vals) in headers {
-      if !custom_headers.contains_key(k) {
+      // Header names are case-insensitive, so a custom header replaces any pact header with the same name
+      if !custom_headers.keys().any(|custom| custom.eq_ignore_ascii_case(k)) {
         for header_value in vals {
           let header_name = HeaderName::try_from(k)
             .map_err(|err| ProviderClientError::RequestHeaderNameError(
@@ -517,6 +518,33 @@ mod tests {
     expect!(keys).to(be_equal_to(vec![
       "x-a",
       "x-c"
+    ]));
+  }
+
+  // Issue #430
+  #[test]
+  fn convert_request_to_native_request_with_custom_headers_ignores_header_name_case() {
+    let client = crate::tests::http_client();
+    let base_url = "http://example.test:8080".to_string();
+    let request = HttpRequest {
+      headers: Some(hashmap! {
+        "authorization".to_string() => vec![ "Bearer from-pact".to_string() ],
+        "X-A".to_string() => vec![ "val-a".to_string() ]
+      }),
+      .. HttpRequest::default()
+    };
+    let custom_headers = hashmap!{
+      "Authorization".to_string() => "Bearer from-verifier".to_string()
+    };
+    let request_builder = create_native_request(&client, &base_url, &request, &custom_headers).unwrap().build().unwrap();
+
+    let headers = request_builder.headers();
+    let keys = headers.keys()
+      .map(|k| k.as_str())
+      .sorted()
+      .collect_vec();
+    expect!(keys).to(be_equal_to(vec![
+      "x-a"
     ]));
   }
 }
