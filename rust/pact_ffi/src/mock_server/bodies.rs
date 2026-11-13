@@ -67,6 +67,9 @@ pub fn process_object(
   let result = if let Some(matcher_type) = obj.get("pact:matcher:type") {
     debug!("detected pact:matcher:type, will configure a matcher");
     process_matcher(obj, matching_rules, generators, &path, type_matcher, &matcher_type.clone())
+  } else if obj.contains_key("pact:generator:type") {
+    debug!("detected pact:generator:type without a matcher, will configure a generator");
+    process_matcher(obj, matching_rules, generators, &path, type_matcher, &Value::Null)
   } else {
     debug!("Configuring a normal object");
     Value::Object(obj.iter()

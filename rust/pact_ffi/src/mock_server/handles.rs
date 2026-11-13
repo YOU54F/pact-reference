@@ -1090,9 +1090,24 @@ fn from_integration_json_v2(
           }
 
           result_value
-        } else {
+        } else if let Some(gen) = map.get("pact:generator:type") {
+          debug!("detected pact:generator:type without a matcher, will configure a generator");
+          if let Some(generator) = Generator::from_map(&json_to_string(gen), map) {
+            let category = generator_category(matching_rules);
+            let path = if path_or_status {
+              path.parent().unwrap_or(DocPath::root())
+            } else {
+              path.clone()
+            };
+            generators.add_generator_with_subcategory(category, path.clone(), generator);
+          }
+          map.get("value").cloned().unwrap_or_default()
+        } else if map.contains_key("value") {
           debug!("Configuring a normal value using the 'value' attribute");
           map.get("value").cloned().unwrap_or_default()
+        } else {
+          debug!("JSON object has no matcher, generator or value, treating it as a plain string");
+          return Either::Left(value.to_string());
         };
         match result {
           Value::Array(values) => Either::Right(values.iter().map(|v| json_to_string(v)).collect()),
@@ -4056,6 +4071,108 @@ mod tests {
 
     expect!(interaction.request.headers.clone()).to(be_some().value(hashmap!{
       "x-id".to_string() => vec!["100".to_string(), "200".to_string(), "300".to_string()]
+    }));
+  }
+
+  // pact-js#1058
+  #[test_log::test]
+  fn header_with_json_value() {
+    let pact_handle = PactHandle::new("TestHC6", "TestHP");
+    let description = CString::new("header_with_json_value").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let name = CString::new("X-Meta").unwrap();
+    let value = CString::new(r#"{"alg":"HS256","typ":"JWT"}"#).unwrap();
+    pactffi_with_header_v2(handle, InteractionPart::Request, name.as_ptr(), 0, value.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(interaction.request.headers.clone()).to(be_some().value(hashmap!{
+      "X-Meta".to_string() => vec![r#"{"alg":"HS256","typ":"JWT"}"#.to_string()]
+    }));
+    expect!(interaction.request.matching_rules.rules_for_category("header").map(|c| c.rules.is_empty()).unwrap_or(true)).to(be_true());
+  }
+
+  // pact-reference#448
+  #[test_log::test]
+  fn header_with_provider_state_generator_and_no_matcher() {
+    let pact_handle = PactHandle::new("TestHC7", "TestHP");
+    let description = CString::new("header_with_provider_state_generator_and_no_matcher").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let name = CString::new("se-token").unwrap();
+    let value = CString::new(r#"{"expression":"${seToken}","pact:generator:type":"ProviderState","value":"ABC123"}"#).unwrap();
+    pactffi_with_header_v2(handle, InteractionPart::Request, name.as_ptr(), 0, value.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(interaction.request.headers.clone()).to(be_some().value(hashmap!{
+      "se-token".to_string() => vec!["ABC123".to_string()]
+    }));
+    expect!(interaction.request.matching_rules.rules_for_category("header").map(|c| c.rules.is_empty()).unwrap_or(true)).to(be_true());
+    expect!(&interaction.request.generators).to(be_equal_to(&generators! {
+      "header" => {
+        "$['se-token']" => Generator::ProviderStateGenerator("${seToken}".to_string(), None)
+      }
+    }));
+  }
+
+  // pact-reference#448
+  #[test_log::test]
+  fn body_with_provider_state_generator_and_no_matcher() {
+    let pact_handle = PactHandle::new("TestBC1", "TestBP");
+    let description = CString::new("body_with_provider_state_generator_and_no_matcher").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let content_type = CString::new("application/json").unwrap();
+    let body = CString::new(r#"{"accountNumber":{"pact:generator:type":"ProviderState","expression":"${accountNumber}","value":100}}"#).unwrap();
+    pactffi_with_body(handle, InteractionPart::Request, content_type.as_ptr(), body.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(interaction.request.body.value_as_string()).to(be_some().value(r#"{"accountNumber":100}"#));
+    expect!(interaction.request.matching_rules.rules_for_category("body").map(|c| c.rules.is_empty()).unwrap_or(true)).to(be_true());
+    expect!(&interaction.request.generators).to(be_equal_to(&generators! {
+      "body" => {
+        "$.accountNumber" => Generator::ProviderStateGenerator("${accountNumber}".to_string(), None)
+      }
+    }));
+  }
+
+  // pact-js#1088
+  #[test_log::test]
+  fn path_with_provider_state_generator_and_no_matcher() {
+    let pact_handle = PactHandle::new("TestPC1", "TestPP");
+    let description = CString::new("path_with_provider_state_generator_and_no_matcher").unwrap();
+    let handle = pactffi_new_interaction(pact_handle, description.as_ptr());
+
+    let method = CString::new("GET").unwrap();
+    let path = CString::new(r#"{"expression":"/users/${id}","pact:generator:type":"ProviderState","value":"/users/1"}"#).unwrap();
+    pactffi_with_request(handle, method.as_ptr(), path.as_ptr());
+
+    let interaction = handle.with_interaction(&|_, _, inner| {
+      inner.as_v4_http().unwrap()
+    }).unwrap();
+
+    pactffi_free_pact_handle(pact_handle);
+
+    expect!(interaction.request.path.as_str()).to(be_equal_to("/users/1"));
+    expect!(interaction.request.matching_rules.rules_for_category("path").map(|c| c.rules.is_empty()).unwrap_or(true)).to(be_true());
+    let json = interaction.to_json();
+    assert_eq!(json["request"]["generators"], json!({
+      "path": {"expression": "/users/${id}", "type": "ProviderState"}
     }));
   }
 
