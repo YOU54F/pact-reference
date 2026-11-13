@@ -136,7 +136,8 @@ fn process_matcher(
       let json_value = match obj.get("value") {
         Some(inner) => match inner {
           Value::Object(ref map) => process_object(map, matching_rules, generators, path.clone(), has_values_matcher),
-          Value::Array(ref array) => process_array(array, matching_rules, generators, path.clone(), true, skip_matchers),
+          Value::Array(ref array) => pad_to_min_length(
+            process_array(array, matching_rules, generators, path.clone(), true, skip_matchers), &rules),
           _ => inner.clone()
         },
         None => Value::Null
@@ -175,6 +176,24 @@ fn process_matcher(
       error!("Failed to parse matching rule from JSON - {}", err);
       Value::Null
     }
+  }
+}
+
+// An example array with fewer items than a min-type matcher requires (e.g. one example item
+// with `min: 2`) would not match its own rule, so repeat the last item up to the minimum, as the
+// Ruby and JVM DSLs do.
+fn pad_to_min_length(value: Value, rules: &[MatchingRule]) -> Value {
+  let min = rules.iter().filter_map(|rule| match rule {
+    MatchingRule::MinType(min) | MatchingRule::MinMaxType(min, _) => Some(*min),
+    _ => None
+  }).max();
+  match (value, min) {
+    (Value::Array(mut items), Some(min)) if !items.is_empty() && items.len() < min => {
+      let last = items[items.len() - 1].clone();
+      items.resize(min, last);
+      Value::Array(items)
+    }
+    (value, _) => value
   }
 }
 
@@ -495,6 +514,36 @@ use pretty_assertions::assert_eq;
                                 &mut generators, DocPath::root(), false);
 
     expect!(result).to(be_equal_to(json));
+  }
+
+  // pact-net#522
+  #[test]
+  fn process_object_pads_a_min_type_array_example_to_the_minimum() {
+    let json = json!({
+      "items": { "pact:matcher:type": "type", "min": 2, "value": [ { "id": { "pact:matcher:type": "integer", "value": 1 } } ] },
+      "range": { "pact:matcher:type": "type", "min": 3, "max": 5, "value": [ "a", "b" ] },
+      "enough": { "pact:matcher:type": "type", "min": 1, "value": [ "a", "b" ] },
+      "empty": { "pact:matcher:type": "type", "min": 2, "value": [] }
+    });
+    let mut matching_rules = MatchingRuleCategory::default();
+    let mut generators = Generators::default();
+    let result = process_object(json.as_object().unwrap(), &mut matching_rules,
+                                &mut generators, DocPath::root(), false);
+
+    expect!(result).to(be_equal_to(json!({
+      "items": [ { "id": 1 }, { "id": 1 } ],
+      "range": [ "a", "b", "b" ],
+      "enough": [ "a", "b" ],
+      "empty": []
+    })));
+    expect!(matching_rules.to_v3_json().to_string()).to(be_equal_to(matchingrules_list!{
+      "body";
+      "$.items" => [ MatchingRule::MinType(2) ],
+      "$.items[*].id" => [ MatchingRule::Integer ],
+      "$.range" => [ MatchingRule::MinMaxType(3, 5) ],
+      "$.enough" => [ MatchingRule::MinType(1) ],
+      "$.empty" => [ MatchingRule::MinType(2) ]
+    }.to_v3_json().to_string()));
   }
 
   #[test]
