@@ -1,6 +1,6 @@
 [package]
 name = "pact_verifier_cli"
-version = "1.4.0"
+version = "1.5.1"
 authors = ["Ronald Holshausen <ronald.holshausen@gmail.com>"]
 edition = "2024"
 description = "Standalone pact verifier for provider pact verification"
@@ -14,11 +14,12 @@ exclude = [
 ]
 
 [features]
-default = ["datetime", "xml", "plugins", "multipart", "junit"]
+default = ["datetime", "xml", "plugins", "multipart", "form_urlencoded", "junit"]
 datetime = ["pact_models/datetime", "pact_verifier/datetime"] # Support for date/time matchers and expressions
 xml = ["pact_models/xml", "pact_verifier/xml"] # support for matching XML documents
 plugins = ["pact_verifier/plugins"]
 multipart = ["pact_verifier/multipart"] # support for MIME multipart bodies
+form_urlencoded = ["pact_models/form_urlencoded", "pact_verifier/form_urlencoded"] # support for form urlencoded bodies
 junit = ["dep:junit-report", "dep:strip-ansi-escapes"] # support for Junit format reports
 
 [dependencies]
@@ -29,11 +30,11 @@ junit-report = { version = "0.8.3", optional = true }
 lazy_static = "1.5.0"
 log = "0.4.27"
 maplit = "1.0.2"
-pact_matching = { version = "2.1.0", path = "../pact_matching", default-features = false }
+pact_matching = { version = "2.2.0", path = "../pact_matching", default-features = false }
 pact_models = { version = "1.3.16", default-features = false }
-pact_verifier = { version = "1.5.0", path = "../pact_verifier", default-features = false }
+pact_verifier = { version = "1.6.0", path = "../pact_verifier", default-features = false }
 quick-xml = { version = "0.39.2", features = ["serde", "serialize"] }
-xrust = "2.0.3"
+xrust = "2.4.1"
 regex = "1.11.1"
 rustls = { version = "0.23.43", default-features = false, features = ["ring", "logging", "tls12", "std"] }
 serde = "1.0.228"

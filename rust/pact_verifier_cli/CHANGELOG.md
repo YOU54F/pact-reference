@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.5.1](https://github.com/pact-foundation/pact-reference/compare/pact_verifier_cli-v1.5.0...pact_verifier_cli-v1.5.1) - _2026-11-23_
+
+### 🐛 Bug Fixes
+
+-   _(pact_verifier_cli)_ Build against xrust 2.4
+
+### 🧪 Testing
+
+-   _(pact_verifier_cli)_ Snapshot the HTML report
+
+### 🛠️ Miscellaneous Tasks
+
+-   _(pact_verifier_cli)_ Extract release tarball into a workdir in Docker fetch stage ([#608](https://github.com/pact-foundation/pact-reference/pull/608))
+
+## [1.5.0](https://github.com/pact-foundation/pact-reference/compare/pact_verifier_cli-v1.4.0...pact_verifier_cli-v1.5.0) - _2026-11-13_
+
+### 🚀 Features
+
+-   Allow the provider state change retries to be set with PACT_PROVIDER_STATE_CHANGE_RETRIES
+
+### 🐛 Bug Fixes
+
+-   _(pact_verifier)_ Apply generators to form-urlencoded request bodies
+
+### 📦 Other
+
+-   Merge pull request #592 from ChangkeunJ/fix/verifier-form-urlencoded-generators
+
 ## [1.4.0](https://github.com/pact-foundation/pact-reference/compare/pact_verifier_cli-v1.3.5...pact_verifier_cli-v1.4.0) - _2026-10-21_
 
 ### 🚀 Features

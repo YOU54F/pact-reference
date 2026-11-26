@@ -21,12 +21,20 @@ mod xml;
 
 const XSLT: &str = include_str!("verification-report.xsl");
 
+fn missing_namespace() -> ParseError {
+  ParseError::MissingNameSpace {
+    prefix: None,
+    nsuri: None,
+    message: Some("namespace prefixes must be declared in the document".to_string())
+  }
+}
+
 fn node_from_str(s: &str) -> Result<RNode, Error> {
-  parse(RNode::new_document(), s, Some(|_: &_| Err(ParseError::MissingNameSpace)))
+  parse(RNode::new_document(), s, Some(|_: &_| Err(missing_namespace())))
 }
 
 fn apply_xslt(xml_str: &str, xslt: Option<&String>) -> anyhow::Result<String> {
-  let doc = parse(RNode::new_document(), xml_str, Some(|_: &_| Err(ParseError::MissingNameSpace)))?;
+  let doc = parse(RNode::new_document(), xml_str, Some(|_: &_| Err(missing_namespace())))?;
 
   let mut s = String::new();
   let xslt_doc = if let Some(xslt) = xslt {
@@ -36,15 +44,15 @@ fn apply_xslt(xml_str: &str, xslt: Option<&String>) -> anyhow::Result<String> {
   } else {
     XSLT
   };
-  let xslt_doc = parse(RNode::new_document(), xslt_doc, Some(|_: &_| Err(ParseError::MissingNameSpace)))?;
+  let xslt_doc = parse(RNode::new_document(), xslt_doc, Some(|_: &_| Err(missing_namespace())))?;
 
   let mut static_context = StaticContextBuilder::new()
     .message(|_| Ok(()))
-    .fetcher(|_| Err(Error::new(ErrorKind::NotImplemented, "not implemented")))
+    .external(|_| Err(Error::new(ErrorKind::NotImplemented, "not implemented")))
     .parser(|_| Err::<RNode, Error>(Error::new(ErrorKind::NotImplemented, "not implemented")))
     .build();
 
-  let mut ctxt = from_document(xslt_doc, None, node_from_str, |_| Ok(String::new()))?;
+  let mut ctxt = from_document(xslt_doc, None, node_from_str, |_| Ok(Vec::new()))?;
   ctxt.context(vec![Item::Node(doc)], 0);
   ctxt.result_document(RNode::new_document());
   let seq = ctxt.evaluate(&mut static_context)?;
@@ -147,4 +155,60 @@ pub(crate) fn write_html_report(
   File::create(file_name)?.write_all(html.as_bytes())?;
 
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use std::collections::HashMap;
+  use std::time::Duration;
+
+  use insta::assert_snapshot;
+  use pact_matching::Mismatch;
+  use pact_verifier::verification_result::{
+    VerificationExecutionResult, VerificationInteractionResult, VerificationMismatchResult,
+  };
+
+  use super::*;
+
+  #[test]
+  fn html_report_with_default_xslt() {
+    let mut notice = HashMap::new();
+    notice.insert("text".to_string(), "This pact is being verified because it is the latest version".to_string());
+    let result = VerificationExecutionResult {
+      result: false,
+      notices: vec![notice],
+      errors: vec![
+        (
+          "GET /foo returns 200".to_string(),
+          VerificationMismatchResult::Mismatches {
+            mismatches: vec![
+              Mismatch::StatusMismatch {
+                expected: 200,
+                actual: 404,
+                mismatch: "expected 200 but was 404".to_string(),
+              },
+            ],
+            interaction_id: Some("interaction-123".to_string()),
+          },
+        ),
+      ],
+      interaction_results: vec![
+        VerificationInteractionResult {
+          interaction_id: None,
+          interaction_key: None,
+          consumer: "My Consumer".to_string(),
+          provider: "My Provider".to_string(),
+          provider_states: vec![],
+          description: "request 1".to_string(),
+          interaction_description: "POST /bar returns 201".to_string(),
+          result: Ok(()),
+          pending: false,
+          duration: Duration::from_millis(15),
+        },
+      ],
+      ..VerificationExecutionResult::default()
+    };
+    let xml = xml::to_xml_string(&result, "My Provider").unwrap();
+    assert_snapshot!(apply_xslt(&xml, None).unwrap());
+  }
 }

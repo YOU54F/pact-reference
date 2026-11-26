@@ -606,10 +606,62 @@ ffi_fn! {
     fn pactffi_verifier_execute(handle: *mut handle::VerifierHandle) -> c_int {
       let handle = as_mut!(handle);
 
-      handle.execute()
+      execute_on_verifier_thread(handle)
     } {
       EXIT_FAILURE
     }
+}
+
+/// Stack size of the thread that runs a verification. This is the usual size of a main thread's
+/// stack, which is what the verifier was written against.
+const VERIFIER_STACK_SIZE: usize = 8 * 1024 * 1024;
+
+/// Runs the verification on a thread of its own, and waits for it.
+///
+/// The verification is driven on the thread that executes it, and it needs more stack than a
+/// foreign caller may have. Threads created by the Go and JVM runtimes, among others, get the
+/// platform's default thread stack, which on musl is 128 KiB, and the verification overflows it.
+/// Running it on a thread whose stack size we choose makes the result independent of the caller.
+fn execute_on_verifier_thread(handle: &mut handle::VerifierHandle) -> c_int {
+  // The handle is not Send, as the results it stores hold boxed interactions.
+  struct HandleRef<'a>(&'a mut handle::VerifierHandle);
+  // SAFETY: The handle is used by one thread at a time: this thread does not touch it until the
+  // verifier thread has been joined. Nothing in it is tied to the thread it was created on, which
+  // foreign callers already rely on, as they are free to call each function from a different
+  // thread.
+  unsafe impl Send for HandleRef<'_> {}
+
+  // The test run ID is thread local, so carry it over to the thread doing the work.
+  let test_run_id = pact_plugin_driver::test_context::current_test_run_id();
+
+  let result = std::thread::scope(|scope| {
+    let handle = HandleRef(&mut *handle);
+    let spawned = std::thread::Builder::new()
+      .name("pact-verifier".to_string())
+      .stack_size(VERIFIER_STACK_SIZE)
+      .spawn_scoped(scope, move || {
+        // Use the wrapper as a whole, so that the closure captures it and not the field in it
+        let handle = handle;
+        pact_plugin_driver::test_context::set_test_run_id(test_run_id);
+        handle.0.execute()
+      });
+    match spawned {
+      Ok(thread) => match thread.join() {
+        Ok(result) => Some(result),
+        // Let the panic carry on to the caller, as it would have without the thread
+        Err(panic) => std::panic::resume_unwind(panic)
+      },
+      Err(err) => {
+        warn!("Could not start a thread to run the verification on, using the calling thread: {}", err);
+        None
+      }
+    }
+  });
+
+  match result {
+    Some(result) => result,
+    None => handle.execute()
+  }
 }
 
 fn get_vector(items_ptr: *const *const c_char, items_len: c_ushort) -> Vec<String> {
@@ -734,7 +786,23 @@ mod tests {
   use libc::c_char;
 
   use crate::verifier::handle::VerifierHandle;
-  use crate::verifier::pactffi_verifier_output;
+  use crate::verifier::{pactffi_verifier_execute, pactffi_verifier_output};
+
+  // musl gives threads a 128 KiB stack by default, and that is the stack a Go or JVM caller
+  // will be on when it calls into the verifier.
+  #[test]
+  fn pactffi_verifier_execute_does_not_depend_on_the_callers_stack_size() {
+    let result = std::thread::Builder::new()
+      .stack_size(128 * 1024)
+      .spawn(|| {
+        let mut handle = VerifierHandle::new_for_application("tests", "1.0.0");
+        pactffi_verifier_execute(&mut handle)
+      })
+      .unwrap()
+      .join()
+      .unwrap();
+    expect!(result).to(be_equal_to(0));
+  }
 
   #[test]
   fn pactffi_verifier_output_test() {
