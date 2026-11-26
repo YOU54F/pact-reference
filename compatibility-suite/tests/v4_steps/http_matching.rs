@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -5,9 +6,11 @@ use anyhow::anyhow;
 use cucumber::gherkin::Step;
 use cucumber::{given, then, when};
 use maplit::hashmap;
+use pact_models::bodies::OptionalBody;
 use pact_models::interaction::Interaction;
 use pact_models::matchingrules::matchers_from_json;
 use pact_models::pact::Pact;
+use pact_models::query_strings::parse_query_string;
 use pact_models::v4::http_parts::{HttpRequest, HttpResponse};
 use pact_models::v4::synch_http::SynchronousHttp;
 use serde_json::{json, Value};
@@ -106,6 +109,18 @@ fn the_response_mismatches_will_contain_a_mismatch_with_error(
   }
 }
 
+fn setup_query_and_headers(request: &mut HttpRequest, data: &HashMap<&str, &String>) {
+  if let Some(query) = data.get("query") {
+    request.query = parse_query_string(query);
+  }
+  if let Some(headers) = data.get("headers") {
+    // A JSON object of a name to a list of values, so that values can contain commas
+    let headers: HashMap<String, Vec<String>> = serde_json::from_str(headers)
+      .expect("headers must be a JSON object of a name to a list of values");
+    request.headers.get_or_insert_with(HashMap::new).extend(headers);
+  }
+}
+
 #[given(expr = "an expected request configured with the following:")]
 fn an_expected_request_configured_with_the_following(world: &mut V4World, step: &Step) {
   if let Some(table) = step.table.as_ref() {
@@ -120,6 +135,7 @@ fn an_expected_request_configured_with_the_following(world: &mut V4World, step: 
     if let Some(body) = data.get("body") {
       setup_body(body, &mut world.expected_request, data.get("content type").map(|ct| ct.as_str()));
     }
+    setup_query_and_headers(&mut world.expected_request, &data);
 
     if let Some(value) = data.get("matching rules") {
       let json: Value = if value.starts_with("JSON:") {
@@ -153,8 +169,30 @@ fn a_request_is_received_with_the_following(world: &mut V4World, step: &Step) {
     if let Some(body) = data.get("body") {
       setup_body(body, &mut request, data.get("content type").map(|ct| ct.as_str()));
     }
+    setup_query_and_headers(&mut request, &data);
   }
   world.received_requests.push(request);
+}
+
+#[given(expr = "the {string} header is removed from the expected request")]
+fn the_header_is_removed_from_the_expected_request(world: &mut V4World, name: String) {
+  remove_header(&mut world.expected_request, &name);
+}
+
+#[given(expr = "the {string} header is removed from the received request")]
+fn the_header_is_removed_from_the_received_request(world: &mut V4World, name: String) {
+  let request = world.received_requests.last_mut().unwrap();
+  remove_header(request, &name);
+  // A real request without a Content-Type header has a body with no known content type
+  if let OptionalBody::Present(body, _, _) = &request.body {
+    request.body = OptionalBody::Present(body.clone(), None, None);
+  }
+}
+
+fn remove_header(request: &mut HttpRequest, name: &str) {
+  if let Some(headers) = request.headers.as_mut() {
+    headers.retain(|key, _| !key.eq_ignore_ascii_case(name));
+  }
 }
 
 #[when("the request is compared to the expected one")]
